@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analisador v18.5 - Reorder Fix</title>
+    <title>Analisador v18.6 - Final Release</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -133,6 +133,18 @@
         #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 2000; display: flex; flex-direction: column; gap: 10px; }
         .toast { background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 14px 24px; border-radius: 12px; font-weight: 600; box-shadow: 0 10px 20px -5px rgba(0,0,0,0.2); animation: slideIn 0.3s ease; display: flex; align-items: center; gap: 10px; }
         @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+        .order-input {
+            width: 40px;
+            text-align: center;
+            padding: 4px 0;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-weight: 700;
+            color: #334155;
+            background: #f8fafc;
+        }
+        .order-input:focus { border-color: var(--active-brand); background: white; }
     </style>
 </head>
 
@@ -144,8 +156,8 @@
                 <i class="fa-solid fa-brain" style="font-size: 26px; color: #7e22ce;"></i>
             </div>
             <div>
-                <h1 style="margin: 0; font-size: 1.4rem; font-weight: 800; color: #1e293b; letter-spacing: -0.5px;">Analisador v18.5</h1>
-                <p style="margin: 0; font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Reorder Fix</p>
+                <h1 style="margin: 0; font-size: 1.4rem; font-weight: 800; color: #1e293b; letter-spacing: -0.5px;">Analisador v18.6</h1>
+                <p style="margin: 0; font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Final Release</p>
             </div>
             
             <div style="height: 40px; width: 1px; background: #e2e8f0; margin: 0 10px;"></div>
@@ -215,7 +227,7 @@
 
     <footer style="text-align: center; padding: 40px; font-size: 0.75rem; color: #94a3b8;">
         <p style="margin-bottom: 5px; font-weight: 600;">Desenvolvido por Rendrix e Luan</p>
-        <p>v18.5 - Reorder Fix</p>
+        <p>v18.6 - Final Release (New Models)</p>
     </footer>
 
     <div id="configModal" class="modal-overlay">
@@ -225,11 +237,11 @@
                 <i class="fa-solid fa-xmark" style="cursor: pointer; color: #94a3b8; font-size: 1.2rem;" onclick="closeConfigModal()"></i>
             </div>
             <div style="margin-bottom: 20px;">
-                <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; display: block; margin-bottom: 8px;">MODELO</label>
+                <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; display: block; margin-bottom: 8px;">MODELO (Atualizado)</label>
                 <select id="modelSelect" class="input-box">
-                    <option value="command">command (Padrão)</option>
+                    <option value="command-r">command-r (Padrão Recomendado)</option>
+                    <option value="command-r-plus">command-r-plus (Mais Inteligente)</option>
                     <option value="command-light">command-light (Rápido)</option>
-                    <option value="command-nightly">command-nightly (Beta)</option>
                 </select>
             </div>
             <div style="margin-bottom: 30px;">
@@ -280,7 +292,7 @@
         function logSystem(m, t='INFO') { window.systemLogs.push(`[${new Date().toLocaleTimeString()}] [${t}] ${m}`); if(t==='ERROR') console.error(m); else console.log(m); }
         
         let API_KEY = localStorage.getItem('cohere_api_key');
-        let SELECTED_MODEL = localStorage.getItem('cohere_model') || 'command';
+        let SELECTED_MODEL = localStorage.getItem('cohere_model') || 'command-r'; // MODELO NOVO PADRÃO
         let CURRENT_COMPANY = localStorage.getItem('company') || 'SAVEGNAGO';
         let MASTER_CITIES = (CURRENT_COMPANY === 'SAVEGNAGO') ? CITIES_SAVEGNAGO : CITIES_PAULISTAO;
         let CURRENT_USER = localStorage.getItem('user');
@@ -291,19 +303,27 @@
         if (!API_KEY) setTimeout(openConfigModal, 500);
         document.getElementById('modelSelect').value = SELECTED_MODEL;
 
-        // --- SANITIZADOR DE JSON ---
+        // --- SUPER SANITIZADOR (REGEX + JSON) ---
         function extractJSON(str) {
-            const firstOpen = str.indexOf('[');
-            const lastClose = str.lastIndexOf(']');
+            // Remove markdown code blocks (```json ... ```)
+            let clean = str.replace(/```json/g, '').replace(/```/g, '');
+            
+            // Busca o primeiro '[' e o último ']'
+            const firstOpen = clean.indexOf('[');
+            const lastClose = clean.lastIndexOf(']');
+            
             if (firstOpen !== -1 && lastClose !== -1) {
-                return str.substring(firstOpen, lastClose + 1);
+                return clean.substring(firstOpen, lastClose + 1);
             }
-            const firstObj = str.indexOf('{');
-            const lastObj = str.lastIndexOf('}');
+            
+            // Tenta objeto único e converte para array
+            const firstObj = clean.indexOf('{');
+            const lastObj = clean.lastIndexOf('}');
             if (firstObj !== -1 && lastObj !== -1) {
-                return "[" + str.substring(firstObj, lastObj + 1) + "]";
+                return "[" + clean.substring(firstObj, lastObj + 1) + "]";
             }
-            throw new Error("Dados inválidos. A IA não retornou uma lista compreensível.");
+            
+            throw new Error("Formato de dados não reconhecido. A IA não retornou uma lista válida.");
         }
 
         // --- FORMATADORES DE TEXTO ---
@@ -360,7 +380,7 @@
             document.getElementById('resultsArea').innerHTML = ''; 
             document.getElementById('summaryPanel').classList.add('hidden');
             
-            // PROMPT 
+            // PROMPT ATUALIZADO
             const prompt = `Você é um especialista em extração de dados JSON.
             
             REGRAS CRÍTICAS:
@@ -385,13 +405,14 @@
                 if (data.message) throw new Error(data.message);
                 
                 window.lastRawResponse = data.text;
-                const jsonStr = extractJSON(data.text);
+                const jsonStr = extractJSON(data.text); // Usa o novo filtro
                 let rawData = JSON.parse(jsonStr);
                 if (!Array.isArray(rawData)) rawData = [rawData];
 
                 rawData.forEach(lista => {
                     lista.itens.forEach(item => {
                         item.desc = toTitleCase(item.desc);
+                        // NÃO formata atacado com TitleCase
                         if (!item.preco || item.preco === "null") item.preco = "0,00";
                     });
                 });
@@ -465,6 +486,7 @@
                     </div>`;
 
                 let rows = ''; 
+                const hasDiscount = lista.itens.some(i => i.desconto) || (listaGeral && listaGeral.itens.some(i => i.desconto));
                 const labelClubText = CURRENT_COMPANY === 'SAVEGNAGO' ? 'SAVE GANHE' : 'CLIENTE CAMPEÃO';
 
                 lista.itens.forEach((item, i) => {
@@ -474,8 +496,10 @@
                     let cardDisplay = (item.nome_clube && item.nome_clube.toLowerCase().includes('cartão')) ? `<span class="price-label text-blue">NOSSO CARTÃO</span>R$ ${item.clube}` : '-';
                     let clubDisplay = (item.nome_clube && !item.nome_clube.toLowerCase().includes('cartão') && item.clube) ? `<span class="price-label text-pink">${labelClubText}</span>R$ ${item.clube}` : '-';
                     let atacadoDisplay = item.atacado ? `<span class="price-label text-purple">ATACADO / REGRAS</span>${item.atacado}` : '-';
+                    let discountDisplay = item.desconto || '-';
                     let rowStyle = "";
 
+                    // DIFF LOGIC
                     if (idx > 0 && listaGeral) {
                         let refItem = null;
                         if(item.cod) {
@@ -510,7 +534,7 @@
                     }
 
                     if(showRow) {
-                        const orderCell = idx === 0 ? `<input type="number" class="order-input" style="padding: 5px; text-align: center; width: 50px;" value="${i + 1}">` : `<span style="color: #94a3b8; font-weight: 700; font-size: 0.75rem;">${i + 1}</span>`;
+                        const orderCell = idx === 0 ? `<input type="number" class="order-input" value="${i + 1}">` : `<span style="color: #94a3b8; font-weight: 700; font-size: 0.75rem;">${i + 1}</span>`;
                         const baseUrl = CURRENT_COMPANY === 'SAVEGNAGO' ? 'https://www.savegnago.com.br/' : 'https://www.paulistaoatacadista.com.br/';
                         
                         let linkHtml = '<span style="color: #cbd5e1;">-</span>';
@@ -525,7 +549,8 @@
                         }
                         
                         const nameBtn = `<i class="fa-regular fa-copy" style="cursor: pointer; color: #94a3b8; margin-left: 8px;" onclick="copyAndStrike(this, '${item.desc.replace(/'/g, "\\'")}')"></i>`;
-
+                        // Coluna desconto oculta visualmente
+                        
                         rows += `<tr style="${rowStyle}" id="table-${idx}-row-${i}">
                             <td style="text-align: center;"><input type="checkbox" onchange="this.closest('tr').style.backgroundColor = this.checked ? '#f0fdf4' : ''"></td>
                             <td style="text-align: center;">${orderCell}</td>
@@ -564,26 +589,12 @@
         function copyList(idx, btn) {
             const list = window.parsedData[idx];
             let text = "";
-            
-            // Re-select rows to respect current visual order
             const table = document.getElementById(`table-${idx}`);
             if(!table) return;
-            
-            const rows = table.querySelectorAll('tbody tr');
-            
-            rows.forEach((row) => {
-                // Find item index from original list logic if needed, or parse from DOM
-                // Better approach: Use the data directly if reorder updates it, 
-                // BUT reorder updates 'list.itens'. So we can iterate list.itens
-                
-                // Let's use the 'list.itens' which is updated by reorder()
-            });
-            
-            // Since reorder updates window.parsedData[idx].itens, we can iterate that
+            // Usa os dados da window.parsedData que foram atualizados pelo reorder
             list.itens.forEach((item, i) => {
                 text += `${i + 1} - ${item.desc} – R$ ${item.preco}\n`;
             });
-            
             navigator.clipboard.writeText(text).then(() => showToast("Lista Copiada!"));
         }
 
@@ -591,36 +602,15 @@
             const table = document.getElementById(`table-${idx}`);
             const rows = table.querySelectorAll('tbody tr');
             const map = new Map();
-            
             rows.forEach((row, i) => {
                 const input = row.querySelector('.order-input');
                 const val = input ? input.value : null;
-                // We need to know which original item this row corresponds to. 
-                // The easiest way is to trust the current order if no ID is present, 
-                // BUT 'i' is the current index.
-                
-                // V18.5 Fix: map visual index 'i' to new order value 'val'
-                // The 'list.itens' array is currently in the visual order (if previously reordered) 
-                // or original order. 
-                
                 map.set(i, val ? parseInt(val) : 9999);
             });
-
             const list = window.parsedData[idx];
-            
-            // Create a temp array combining item and its new sort value
-            const temp = list.itens.map((item, i) => ({ 
-                item, 
-                val: map.get(i), 
-                oldIdx: i 
-            }));
-            
-            // Sort
+            const temp = list.itens.map((item, i) => ({ item, val: map.get(i), oldIdx: i }));
             temp.sort((a, b) => (a.val - b.val) || (a.oldIdx - b.oldIdx));
-            
-            // Update main data
             list.itens = temp.map(t => t.item);
-            
             renderAllTables();
             showToast("Reordenado!");
         }
@@ -653,5 +643,4 @@
         function clearHistory() { if(confirm("Apagar?")) { localStorage.removeItem('appHistory'); openHistory(); } }
     </script>
 </body>
-
 </html>
