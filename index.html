@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analisador v18.6 - Final Release</title>
+    <title>Analisador v18.7 - Model Fix 2026</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -156,8 +156,8 @@
                 <i class="fa-solid fa-brain" style="font-size: 26px; color: #7e22ce;"></i>
             </div>
             <div>
-                <h1 style="margin: 0; font-size: 1.4rem; font-weight: 800; color: #1e293b; letter-spacing: -0.5px;">Analisador v18.6</h1>
-                <p style="margin: 0; font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Final Release</p>
+                <h1 style="margin: 0; font-size: 1.4rem; font-weight: 800; color: #1e293b; letter-spacing: -0.5px;">Analisador v18.7</h1>
+                <p style="margin: 0; font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Model Fix 2026</p>
             </div>
             
             <div style="height: 40px; width: 1px; background: #e2e8f0; margin: 0 10px;"></div>
@@ -227,7 +227,7 @@
 
     <footer style="text-align: center; padding: 40px; font-size: 0.75rem; color: #94a3b8;">
         <p style="margin-bottom: 5px; font-weight: 600;">Desenvolvido por Rendrix e Luan</p>
-        <p>v18.6 - Final Release (New Models)</p>
+        <p>v18.7 - Model Update 2026</p>
     </footer>
 
     <div id="configModal" class="modal-overlay">
@@ -237,11 +237,11 @@
                 <i class="fa-solid fa-xmark" style="cursor: pointer; color: #94a3b8; font-size: 1.2rem;" onclick="closeConfigModal()"></i>
             </div>
             <div style="margin-bottom: 20px;">
-                <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; display: block; margin-bottom: 8px;">MODELO (Atualizado)</label>
+                <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; display: block; margin-bottom: 8px;">MODELO (2026 Compatible)</label>
                 <select id="modelSelect" class="input-box">
-                    <option value="command-r">command-r (Padrão Recomendado)</option>
-                    <option value="command-r-plus">command-r-plus (Mais Inteligente)</option>
-                    <option value="command-light">command-light (Rápido)</option>
+                    <option value="command-r-plus-08-2024">command-r-plus-08-2024 (Recomendado)</option>
+                    <option value="command-r-08-2024">command-r-08-2024 (Rápido)</option>
+                    <option value="command-nightly">command-nightly (Beta)</option>
                 </select>
             </div>
             <div style="margin-bottom: 30px;">
@@ -282,7 +282,6 @@
     <script>
         // --- LÓGICA DO SISTEMA ---
         
-        // Configurações
         const CITIES_SAVEGNAGO = ["Americana", "Araraquara", "Araras", "Barretos", "Bebedouro", "Campinas", "Franca", "Hortolândia", "Indaiatuba", "Jaboticabal", "Jardinópolis", "Leme", "Limeira", "Matão", "Monte Alto", "Piracicaba", "Ribeirão Preto", "Rio Claro", "São Carlos", "Sertãozinho", "Sumaré"];
         const CITIES_PAULISTAO = ["Araraquara", "Barretos", "Campinas", "Franca", "Ribeirão Preto", "Santa Bárbara", "Rio Claro", "Sertãozinho"];
         const LOGO_SAVEGNAGO = "https://savegnagoio.vtexassets.com/assets/vtex/assets-builder/savegnagoio.store-theme/14.0.36/home/logo-save___ee8753fa9fd1e21018b817a0d020549f.png";
@@ -292,7 +291,7 @@
         function logSystem(m, t='INFO') { window.systemLogs.push(`[${new Date().toLocaleTimeString()}] [${t}] ${m}`); if(t==='ERROR') console.error(m); else console.log(m); }
         
         let API_KEY = localStorage.getItem('cohere_api_key');
-        let SELECTED_MODEL = localStorage.getItem('cohere_model') || 'command-r'; // MODELO NOVO PADRÃO
+        let SELECTED_MODEL = localStorage.getItem('cohere_model') || 'command-r-plus-08-2024'; // ATUALIZADO 2026
         let CURRENT_COMPANY = localStorage.getItem('company') || 'SAVEGNAGO';
         let MASTER_CITIES = (CURRENT_COMPANY === 'SAVEGNAGO') ? CITIES_SAVEGNAGO : CITIES_PAULISTAO;
         let CURRENT_USER = localStorage.getItem('user');
@@ -303,27 +302,19 @@
         if (!API_KEY) setTimeout(openConfigModal, 500);
         document.getElementById('modelSelect').value = SELECTED_MODEL;
 
-        // --- SUPER SANITIZADOR (REGEX + JSON) ---
+        // --- SANITIZADOR DE JSON ---
         function extractJSON(str) {
-            // Remove markdown code blocks (```json ... ```)
-            let clean = str.replace(/```json/g, '').replace(/```/g, '');
-            
-            // Busca o primeiro '[' e o último ']'
-            const firstOpen = clean.indexOf('[');
-            const lastClose = clean.lastIndexOf(']');
-            
+            const firstOpen = str.indexOf('[');
+            const lastClose = str.lastIndexOf(']');
             if (firstOpen !== -1 && lastClose !== -1) {
-                return clean.substring(firstOpen, lastClose + 1);
+                return str.substring(firstOpen, lastClose + 1);
             }
-            
-            // Tenta objeto único e converte para array
-            const firstObj = clean.indexOf('{');
-            const lastObj = clean.lastIndexOf('}');
+            const firstObj = str.indexOf('{');
+            const lastObj = str.lastIndexOf('}');
             if (firstObj !== -1 && lastObj !== -1) {
-                return "[" + clean.substring(firstObj, lastObj + 1) + "]";
+                return "[" + str.substring(firstObj, lastObj + 1) + "]";
             }
-            
-            throw new Error("Formato de dados não reconhecido. A IA não retornou uma lista válida.");
+            throw new Error("A IA não retornou dados válidos (JSON). Verifique o modelo.");
         }
 
         // --- FORMATADORES DE TEXTO ---
@@ -380,7 +371,6 @@
             document.getElementById('resultsArea').innerHTML = ''; 
             document.getElementById('summaryPanel').classList.add('hidden');
             
-            // PROMPT ATUALIZADO
             const prompt = `Você é um especialista em extração de dados JSON.
             
             REGRAS CRÍTICAS:
@@ -402,17 +392,21 @@
                     body: JSON.stringify({ model: SELECTED_MODEL, message: prompt, temperature: 0.1 })
                 });
                 const data = await response.json();
+                
+                // Tratamento de Erro de Modelo Descontinuado
+                if (data.message && data.message.includes("removed")) {
+                    throw new Error("Modelo descontinuado. Vá na engrenagem e troque para 'command-r-plus-08-2024'.");
+                }
                 if (data.message) throw new Error(data.message);
                 
                 window.lastRawResponse = data.text;
-                const jsonStr = extractJSON(data.text); // Usa o novo filtro
+                const jsonStr = extractJSON(data.text);
                 let rawData = JSON.parse(jsonStr);
                 if (!Array.isArray(rawData)) rawData = [rawData];
 
                 rawData.forEach(lista => {
                     lista.itens.forEach(item => {
                         item.desc = toTitleCase(item.desc);
-                        // NÃO formata atacado com TitleCase
                         if (!item.preco || item.preco === "null") item.preco = "0,00";
                     });
                 });
@@ -534,7 +528,7 @@
                     }
 
                     if(showRow) {
-                        const orderCell = idx === 0 ? `<input type="number" class="order-input" value="${i + 1}">` : `<span style="color: #94a3b8; font-weight: 700; font-size: 0.75rem;">${i + 1}</span>`;
+                        const orderCell = idx === 0 ? `<input type="number" class="order-input" style="padding: 5px; text-align: center; width: 50px;" value="${i + 1}">` : `<span style="color: #94a3b8; font-weight: 700; font-size: 0.75rem;">${i + 1}</span>`;
                         const baseUrl = CURRENT_COMPANY === 'SAVEGNAGO' ? 'https://www.savegnago.com.br/' : 'https://www.paulistaoatacadista.com.br/';
                         
                         let linkHtml = '<span style="color: #cbd5e1;">-</span>';
@@ -549,8 +543,7 @@
                         }
                         
                         const nameBtn = `<i class="fa-regular fa-copy" style="cursor: pointer; color: #94a3b8; margin-left: 8px;" onclick="copyAndStrike(this, '${item.desc.replace(/'/g, "\\'")}')"></i>`;
-                        // Coluna desconto oculta visualmente
-                        
+
                         rows += `<tr style="${rowStyle}" id="table-${idx}-row-${i}">
                             <td style="text-align: center;"><input type="checkbox" onchange="this.closest('tr').style.backgroundColor = this.checked ? '#f0fdf4' : ''"></td>
                             <td style="text-align: center;">${orderCell}</td>
@@ -591,7 +584,6 @@
             let text = "";
             const table = document.getElementById(`table-${idx}`);
             if(!table) return;
-            // Usa os dados da window.parsedData que foram atualizados pelo reorder
             list.itens.forEach((item, i) => {
                 text += `${i + 1} - ${item.desc} – R$ ${item.preco}\n`;
             });
