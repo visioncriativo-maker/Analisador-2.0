@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analisador v19.10 - Anti-Crash</title>
+    <title>Analisador v19.11 - Full Sweep</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -69,8 +69,8 @@
                 <i class="fa-solid fa-brain" style="font-size: 26px; color: #7e22ce;"></i>
             </div>
             <div>
-                <h1 style="margin: 0; font-size: 1.4rem; font-weight: 800; color: #1e293b;">Analisador v19.10</h1>
-                <p style="margin: 0; font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Anti-Crash & Auto-Repair</p>
+                <h1 style="margin: 0; font-size: 1.4rem; font-weight: 800; color: #1e293b;">Analisador v19.11</h1>
+                <p style="margin: 0; font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Full Sweep Mode</p>
             </div>
             <div style="height: 40px; width: 1px; background: #e2e8f0; margin: 0 10px;"></div>
             <button onclick="toggleCompany()" class="btn btn-neutral" id="companySwitcher">
@@ -97,7 +97,7 @@
         </div>
         <div class="action-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px;">
             <button id="analyzeBtn" onclick="analyzeWithCohere()" class="btn btn-primary" style="padding: 16px;">
-                <i class="fa-solid fa-wand-magic-sparkles"></i> <span id="btnText">Analisar Ofertas</span>
+                <i class="fa-solid fa-wand-magic-sparkles"></i> <span id="btnText">Analisar (Varredura)</span>
                 <div id="loadingSpinner" class="spinner hidden" style="margin-left: 10px;"></div>
             </button>
             <button id="timerButton" class="btn btn-warning">
@@ -125,8 +125,8 @@
             <div style="margin-bottom: 20px;">
                 <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; display: block; margin-bottom: 8px;">MODELO (2026 Compatible)</label>
                 <select id="modelSelect" class="input-box">
-                    <option value="command-r-08-2024">command-r-08-2024 (Rápido - Padrão)</option>
-                    <option value="command-r-plus-08-2024">command-r-plus-08-2024 (Lento - Potente)</option>
+                    <option value="command-r-08-2024">command-r-08-2024 (Rápido)</option>
+                    <option value="command-r-plus-08-2024">command-r-plus-08-2024 (Potente)</option>
                 </select>
             </div>
             <div style="margin-bottom: 30px;">
@@ -177,7 +177,6 @@
         // --- AUTO-RESET MODELO ANTIGO ---
         let storedModel = localStorage.getItem('cohere_model');
         if (!storedModel || storedModel.indexOf('2024') === -1) {
-            console.log("Modelo antigo detectado. Resetando para 2026...");
             localStorage.setItem('cohere_model', 'command-r-08-2024');
         }
 
@@ -210,26 +209,20 @@
             }
         });
 
-        // --- JSON SANITIZER & AUTO-REPAIR ---
+        // --- JSON SANITIZER ---
         function extractJSON(str) {
             let clean = str.replace(/```json/g, '').replace(/```/g, '').replace(/^json/i, '');
             const firstOpen = clean.indexOf('['); const lastClose = clean.lastIndexOf(']');
+            if (firstOpen !== -1 && lastClose !== -1) return clean.substring(firstOpen, lastClose + 1);
             
+            // Auto-Repair Tentative
             if (firstOpen !== -1) {
-                // Se encontrou fecha, ótimo. Se não, tenta fechar na força bruta (Auto-Repair)
-                if (lastClose !== -1 && lastClose > firstOpen) {
-                    return clean.substring(firstOpen, lastClose + 1);
-                } else {
-                    console.warn("JSON truncado detectado. Tentando reparar...");
-                    // Pega até o fim e adiciona fechamento
-                    let partial = clean.substring(firstOpen);
-                    // Tenta fechar o ultimo objeto e o array
-                    if (!partial.endsWith('}]')) {
-                        if (partial.endsWith('}')) return partial + ']';
-                        else return partial + '}]';
-                    }
-                    return partial;
+                let partial = clean.substring(firstOpen);
+                if (!partial.endsWith('}]')) {
+                    if (partial.endsWith('}')) return partial + ']';
+                    else return partial + '}]';
                 }
+                return partial;
             }
             
             const firstObj = clean.indexOf('{'); const lastObj = clean.lastIndexOf('}');
@@ -242,13 +235,8 @@
             let cleaned = text;
             const forbidden = ["save ganhe", "nosso cartão", "cliente campeão", "save ganhe:", "nosso cartão:", "cliente campeão:"];
             forbidden.forEach(term => { cleaned = cleaned.replace(new RegExp(`${term}.*?(\\d+,\\d{2})?`, "gi"), "").trim(); });
-            
-            // --- VASSOURA DE SKU REFORÇADA ---
-            // Remove: (12345), red.12345, cod 12345, 123456
-            cleaned = cleaned.replace(/\(?\b(red\.?|cód\.?|cod\.?)\s*[\d\/\.\-]+\)?/gi, ""); // Remove 'red.123'
-            cleaned = cleaned.replace(/^\s*[\d\/\.\-]+\s*$/, ""); // Remove se for SÓ números
-            cleaned = cleaned.replace(/\(\s*\d+\s*\)/g, ""); // Remove '(12345)'
-            
+            cleaned = cleaned.replace(/red\.?\s*[\d\/]+/gi, "").replace(/\(red\.?\s*[\d\/]+\)/gi, "").replace(/^\s*[\d\/]+\s*$/, ""); 
+            cleaned = cleaned.replace(/\(\s*\d+\s*\)/g, ""); 
             cleaned = cleaned.replace(/^[\s,]+|[\s,]+$/g, "");
             return cleaned;
         }
@@ -322,25 +310,27 @@
             const spinner = document.getElementById('loadingSpinner'); 
             const btnText = document.getElementById('btnText');
             
-            btn.disabled = true; btnText.textContent = "Processando..."; spinner.classList.remove('hidden');
+            btn.disabled = true; btnText.textContent = "Processando... (Pode demorar)"; spinner.classList.remove('hidden');
             document.getElementById('resultsArea').innerHTML = ''; 
             document.getElementById('summaryPanel').classList.add('hidden');
             
-            // PROMPT OTIMIZADO
-            const prompt = `Você é um especialista em extração de dados JSON. Extraia ofertas.
+            // PROMPT FULL SWEEP (COMPLETO)
+            const prompt = `Você é um especialista em extração de dados JSON.
+            
+            MISSÃO: Extrair CADA UM dos produtos da lista. NÃO PULE NADA.
+            Se a lista tiver 50 produtos, retorne 50 objetos. Leia linha por linha.
+            
             REGRAS:
-            1. CLUBE: Se 'Save Ganhe', 'Cliente Campeão', 'Nosso Cartão', ponha em 'clube'. NÃO em 'atacado'.
-            2. ATACADO: Só regras ('Leve 3', 'A partir de...', parenteses). SEM códigos.
+            1. SEPARAÇÃO CLUBE: 'Save Ganhe', 'Cliente Campeão', 'Nosso Cartão' -> campo 'clube'. JAMAIS 'atacado'.
+            2. ATACADO: Apenas regras 'Leve 3', 'A partir de...', parenteses descritivos. SEM códigos.
             3. MULTI-SKU: Capture códigos 123/456.
-            4. DESCONTO: Mova 'XX% desconto' para 'desconto'.
-            5. RETORNE APENAS JSON. SEM TEXTO.
-            FORMATO: [{"header": "Nome", "itens": [{"desc": "Nome", "preco": "X,XX", "cod": "123", "clube": "X,XX", "nome_clube": "Save", "atacado": "Regras", "desconto": "20%"}]}]
+            4. PREÇO: Se vazio, "0,00".
+            
+            SAÍDA JSON PURA: 
+            [{"header": "Nome", "itens": [{"desc": "Nome", "preco": "X,XX", "cod": "123", "clube": "X,XX", "nome_clube": "Save", "atacado": "Regras", "desconto": "20%"}]}]
+            
             TEXTO: ${text}`;
             
-            // TIMEOUT SAFETY (120s - 2 Minutos)
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 120000);
-
             try {
                 const response = await fetch("https://api.cohere.ai/v1/chat", {
                     method: "POST",
@@ -348,27 +338,18 @@
                     body: JSON.stringify({ 
                         model: SELECTED_MODEL, 
                         message: prompt, 
-                        temperature: 0.1,
+                        temperature: 0.0, // Robótico para não inventar/pular
                         max_tokens: 4000 
-                    }),
-                    signal: controller.signal
+                    })
                 });
-                clearTimeout(timeoutId);
+                
                 const data = await response.json();
                 
                 if (data.message && data.message.includes("removed")) throw new Error("Modelo descontinuado. Vá na engrenagem.");
                 if (data.message) throw new Error(data.message);
                 
                 window.lastRawResponse = data.text;
-                // Tenta extrair e, se falhar, tenta reparar JSON quebrado
-                let jsonStr;
-                try {
-                    jsonStr = extractJSON(data.text);
-                } catch(e) {
-                    console.log("Tentando reparar JSON...");
-                    jsonStr = extractJSON(data.text + "}]"); // Tentativa desesperada de fechar
-                }
-                
+                const jsonStr = extractJSON(data.text);
                 let rawData = JSON.parse(jsonStr);
                 if (!Array.isArray(rawData)) rawData = [rawData];
 
@@ -377,8 +358,7 @@
                 window.parsedData = rawData;
                 renderSummary(); renderAllTables(); showToast("Sucesso!");
             } catch (e) { 
-                let msg = e.name === 'AbortError' ? "Tempo limite (120s). A lista é muito grande." : e.message;
-                alert("Erro: " + msg); 
+                alert("Erro: " + e.message); 
             }
             finally { 
                 btn.disabled = false; btnText.textContent = "Analisar Ofertas"; spinner.classList.add('hidden'); 
