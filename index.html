@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analisador v19.2 - Timer & Kilo Fix</title>
+    <title>Analisador v19.4 - Cluster Mogi</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -132,6 +132,7 @@
             color: #334155;
             background: #f8fafc;
         }
+        .order-input:focus { border-color: var(--active-brand); background: white; }
     </style>
 </head>
 
@@ -143,8 +144,8 @@
                 <i class="fa-solid fa-brain" style="font-size: 26px; color: #7e22ce;"></i>
             </div>
             <div>
-                <h1 style="margin: 0; font-size: 1.4rem; font-weight: 800; color: #1e293b; letter-spacing: -0.5px;">Analisador v19.2</h1>
-                <p style="margin: 0; font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Timer & Kilo Fix</p>
+                <h1 style="margin: 0; font-size: 1.4rem; font-weight: 800; color: #1e293b; letter-spacing: -0.5px;">Analisador v19.4</h1>
+                <p style="margin: 0; font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Cluster Mogi</p>
             </div>
             <div style="height: 40px; width: 1px; background: #e2e8f0; margin: 0 10px;"></div>
             <button onclick="toggleCompany()" class="btn btn-neutral" id="companySwitcher">
@@ -208,7 +209,7 @@
 
     <footer style="text-align: center; padding: 40px; font-size: 0.75rem; color: #94a3b8;">
         <p style="margin-bottom: 5px; font-weight: 600;">Desenvolvido por Rendrix e Luan</p>
-        <p>v19.2 - Timer Restored</p>
+        <p>v19.4 - Cluster Mogi</p>
     </footer>
 
     <div id="configModal" class="modal-overlay">
@@ -283,12 +284,10 @@
         let CURRENT_USER = localStorage.getItem('user');
         window.parsedData = [];
 
-        // INIT
         applyTheme(); updateUserUI();
         if (!API_KEY) setTimeout(openConfigModal, 500);
         document.getElementById('modelSelect').value = SELECTED_MODEL;
 
-        // --- TIMER VARIABLES ---
         let tInt, tStart;
 
         function extractJSON(str) {
@@ -338,14 +337,12 @@
         function formatText(str) {
             if(!str) return "";
             let corrected = str;
-            // Correção de "kilo" e outras
             const keys = Object.keys(CORRECTIONS).sort((a,b) => b.length - a.length);
             keys.forEach(key => {
                 const regex = new RegExp(`\\b${key.replace('.','\\.')}\\b`, 'gi'); 
                 if (key.match(/\d/)) corrected = corrected.replace(new RegExp(key, 'gi'), CORRECTIONS[key]);
                 else corrected = corrected.replace(regex, CORRECTIONS[key]);
             });
-            // Correção adicional para KILO solto se não pego pelo \b
             corrected = corrected.replace(/\s+kilo\s+/gi, " kg ");
             
             const smallWords = /^(de|da|do|das|dos|e|em|na|no|nas|nos|com|por|para|o|a|os|as|um|uma|que|como|pelo|pela|ao|aos|ou)$/i;
@@ -459,10 +456,23 @@
                         let final = city;
                         if (city === "Santa Bárbara") final = "Santa Bárbara d'Oeste";
                         if (city === "Mogi") final = "Mogi Guaçu";
-                        data[i].cityList.push(final);
-                        specificCities.push(city);
+                        
+                        // INSERE APENAS SE NÃO EXISTIR (Para não duplicar na detecção normal)
+                        if (!data[i].cityList.includes(final)) {
+                            data[i].cityList.push(final);
+                            specificCities.push(city);
+                        }
                     }
                 });
+
+                // === LÓGICA DE INJEÇÃO AUTOMÁTICA (Mogi Guaçu) ===
+                const hasCampinas = data[i].cityList.some(c => c.includes("Campinas"));
+                const hasSantaBarbara = data[i].cityList.some(c => c.includes("Santa Bárbara"));
+                
+                // Se tem Campinas OU Santa Bárbara, E Mogi ainda não está lá...
+                if ((hasCampinas || hasSantaBarbara) && !data[i].cityList.includes("Mogi Guaçu")) {
+                    data[i].cityList.push("Mogi Guaçu");
+                }
             }
             if (data.length > 0) {
                 data[0].cityList = MASTER_CITIES.filter(c => !specificCities.includes(c));
@@ -605,17 +615,48 @@
         function reorder(idx) { renderAllTables(); showToast("Reordenado!"); }
         function exportXLS(idx) { const list=window.parsedData[idx]; const ws=XLSX.utils.json_to_sheet(list.itens); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Ofertas"); XLSX.writeFile(wb, `Lista_${idx}.xlsx`); }
         function clearAll() { document.getElementById("inputText").value=""; document.getElementById("resultsArea").innerHTML=""; document.getElementById("summaryPanel").classList.add("hidden"); window.parsedData=[]; }
+        
         function generateBugReport() {
             try {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
-                doc.text("Relatório de Debug", 10, 10);
-                doc.text(`Data: ${new Date().toLocaleString()}`, 10, 20);
-                doc.text("Resposta Bruta:", 10, 30);
-                const splitText = doc.splitTextToSize(window.lastRawResponse || "Vazio", 180);
-                doc.text(splitText, 10, 40);
-                doc.save("BugReport.pdf");
-            } catch(e) { alert("Erro ao gerar PDF"); }
+                
+                const pageHeight = doc.internal.pageSize.height;
+                const margin = 10;
+                let y = 10; 
+                
+                doc.setFontSize(16);
+                doc.setTextColor(220, 38, 38); 
+                doc.text("Relatório de Debug (Completo)", margin, y);
+                y += 10;
+                
+                doc.setFontSize(10);
+                doc.setTextColor(0);
+                doc.text(`Data: ${new Date().toLocaleString()}`, margin, y);
+                y += 10;
+                
+                doc.setFontSize(12);
+                doc.setFont(undefined, 'bold');
+                doc.text("Resposta RAW da IA:", margin, y);
+                y += 7;
+                
+                doc.setFontSize(9);
+                doc.setFont("courier", "normal"); 
+                
+                const rawText = window.lastRawResponse || "Nenhuma resposta capturada.";
+                const lines = doc.splitTextToSize(rawText, 190);
+                
+                lines.forEach(line => {
+                    if (y > pageHeight - margin) {
+                        doc.addPage();
+                        y = margin; 
+                    }
+                    doc.text(line, margin, y);
+                    y += 4; 
+                });
+                
+                doc.save(`BugReport_${Date.now()}.pdf`);
+            } catch(e) { alert("Erro ao gerar PDF: " + e.message); }
         }
 
         // TIMER LOGIC RESTORED
