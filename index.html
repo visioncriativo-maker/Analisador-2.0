@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analisador v19.0 - No Duplicate</title>
+    <title>Analisador v19.1 - Separação Clube/Atacado</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -156,8 +156,8 @@
                 <i class="fa-solid fa-brain" style="font-size: 26px; color: #7e22ce;"></i>
             </div>
             <div>
-                <h1 style="margin: 0; font-size: 1.4rem; font-weight: 800; color: #1e293b; letter-spacing: -0.5px;">Analisador v19.0</h1>
-                <p style="margin: 0; font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase;">No Duplicate</p>
+                <h1 style="margin: 0; font-size: 1.4rem; font-weight: 800; color: #1e293b; letter-spacing: -0.5px;">Analisador v19.1</h1>
+                <p style="margin: 0; font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Separação Clube/Atacado</p>
             </div>
             
             <div style="height: 40px; width: 1px; background: #e2e8f0; margin: 0 10px;"></div>
@@ -227,7 +227,7 @@
 
     <footer style="text-align: center; padding: 40px; font-size: 0.75rem; color: #94a3b8;">
         <p style="margin-bottom: 5px; font-weight: 600;">Desenvolvido por Rendrix e Luan</p>
-        <p>v19.0 - No Duplicate</p>
+        <p>v19.1 - Split Logic Fix</p>
     </footer>
 
     <div id="configModal" class="modal-overlay">
@@ -303,7 +303,6 @@
         let CURRENT_USER = localStorage.getItem('user');
         window.parsedData = [];
 
-        // Inicialização
         applyTheme(); updateUserUI();
         if (!API_KEY) setTimeout(openConfigModal, 500);
         document.getElementById('modelSelect').value = SELECTED_MODEL;
@@ -311,21 +310,49 @@
         function extractJSON(str) {
             const firstOpen = str.indexOf('[');
             const lastClose = str.lastIndexOf(']');
-            if (firstOpen !== -1 && lastClose !== -1) {
-                return str.substring(firstOpen, lastClose + 1);
-            }
+            if (firstOpen !== -1 && lastClose !== -1) return str.substring(firstOpen, lastClose + 1);
             const firstObj = str.indexOf('{');
             const lastObj = str.lastIndexOf('}');
-            if (firstObj !== -1 && lastObj !== -1) {
-                return "[" + str.substring(firstObj, lastObj + 1) + "]";
-            }
-            throw new Error("A IA não retornou dados válidos (JSON). Verifique o modelo.");
+            if (firstObj !== -1 && lastObj !== -1) return "[" + str.substring(firstObj, lastObj + 1) + "]";
+            throw new Error("A IA não retornou dados válidos (JSON).");
         }
 
-        // --- FORMATADOR MESTRE ---
+        // --- CORREÇÃO PÓS-PROCESSAMENTO ---
+        // Verifica se a IA colocou coisa errada no atacado e move
+        function smartCorrectItem(item) {
+            // 1. Aplica formatação de texto (Title Case + Correções)
+            item.desc = formatText(item.desc);
+            
+            // 2. Verifica se o campo ATACADO contém ofertas de Clube que deveriam estar em outro lugar
+            if (item.atacado) {
+                const lowerAtacado = item.atacado.toLowerCase();
+                // Procura padrões de preço (R$ XX,XX) dentro do texto de atacado
+                const priceMatch = item.atacado.match(/R\$\s*(\d+,\d{2})/);
+                
+                if (lowerAtacado.includes("save ganhe") || lowerAtacado.includes("nosso cartão") || lowerAtacado.includes("cliente campeão")) {
+                    
+                    // Se achou um preço e o campo oficial do clube está vazio, move pra lá
+                    if (priceMatch && (!item.clube || item.clube === "0,00" || item.clube === "null")) {
+                        item.clube = priceMatch[1];
+                        // Tenta adivinhar o nome do clube baseado no texto
+                        if (lowerAtacado.includes("nosso cartão")) item.nome_clube = "Nosso Cartão";
+                        else if (lowerAtacado.includes("cliente campeão")) item.nome_clube = "Cliente Campeão";
+                        else item.nome_clube = "Save Ganhe";
+                    }
+                    
+                    // Remove o texto "poluído" do atacado
+                    item.atacado = item.atacado.replace(/(save ganhe|nosso cartão|cliente campeão).*?(R\$\s*\d+,\d{2})?/gi, "").trim();
+                    // Limpa pontuação solta
+                    item.atacado = item.atacado.replace(/^[\s\-\.,]+|[\s\-\.,]+$/g, "");
+                }
+            }
+            
+            if (!item.preco || item.preco === "null") item.preco = "0,00";
+            return item;
+        }
+
         function formatText(str) {
             if(!str) return "";
-            
             let corrected = str;
             const keys = Object.keys(CORRECTIONS).sort((a,b) => b.length - a.length);
             keys.forEach(key => {
@@ -333,7 +360,6 @@
                 if (key.match(/\d/)) corrected = corrected.replace(new RegExp(key, 'gi'), CORRECTIONS[key]);
                 else corrected = corrected.replace(regex, CORRECTIONS[key]);
             });
-
             const smallWords = /^(de|da|do|das|dos|e|em|na|no|nas|nos|com|por|para|o|a|os|as|um|uma|que|como|pelo|pela|ao|aos|ou)$/i;
             return corrected.split(' ').map((word, index) => {
                 if (Object.values(CORRECTIONS).includes(word)) return word;
@@ -347,29 +373,6 @@
             if (!cities || cities.length === 0) return "Nenhuma cidade identificada";
             if (cities.length === 1) return cities[0];
             const copy = [...cities]; const last = copy.pop(); return copy.join(', ') + ' e ' + last; 
-        }
-
-        // --- LIMPEZA DE REDUNDÂNCIA DO ATACADO ---
-        function cleanAtacadoField(text) {
-            if (!text) return "";
-            let cleaned = text;
-            
-            // Remove menções a clubes para evitar duplicidade
-            const forbidden = [
-                "save ganhe", "nosso cartão", "cliente campeão", 
-                "save ganhe:", "nosso cartão:", "cliente campeão:"
-            ];
-            
-            forbidden.forEach(term => {
-                // Regex case insensitive que pega a linha ou frase
-                const regex = new RegExp(`${term}.*?(\\d+,\\d{2})?`, "gi"); 
-                cleaned = cleaned.replace(regex, "").trim();
-            });
-            
-            // Limpa vírgulas ou espaços extras que sobraram
-            cleaned = cleaned.replace(/^[\s,]+|[\s,]+$/g, "");
-            
-            return cleaned;
         }
 
         function toggleCompany() {
@@ -408,18 +411,17 @@
             document.getElementById('resultsArea').innerHTML = ''; 
             document.getElementById('summaryPanel').classList.add('hidden');
             
-            // PROMPT ATUALIZADO: Focado em separar as coisas
-            const prompt = `Você é um especialista em extração de dados JSON.
+            const prompt = `Você é um especialista em extração de dados JSON. Analise o texto e extraia as ofertas.
             
-            REGRAS CRÍTICAS:
-            1. MULTI-SKU: Capture TODOS os códigos (ex: 123/456) separados por barra.
-            2. ATACADO/REGRAS: Capture regras de quantidade (ex: "A partir de X unid", "Nesta embalagem...") e textos entre parênteses. IMPORTANTE: NÃO coloque preços de Clube/Cartão (Save Ganhe, Nosso Cartão) neste campo, eles têm campos próprios.
-            3. PREÇO: Se vazio, use "0,00".
-            4. Retorne APENAS o JSON puro.
+            SEPARAÇÃO RIGOROSA:
+            1. CLUBE/CARTÃO: Se a oferta for 'Save Ganhe', 'Cliente Campeão' ou 'Nosso Cartão', coloque o valor em 'clube' e o nome do programa em 'nome_clube'. JAMAIS coloque isso em 'atacado'.
+            2. ATACADO: Este campo é EXCLUSIVO para regras de volume (ex: 'Leve 3 Pague 2', 'A partir de X unid', 'Nesta embalagem sai...') ou textos entre parênteses genéricos.
+            3. MULTI-SKU: Capture TODOS os códigos (ex: 123/456) separados por barra.
+            4. PREÇO: Se vazio, use "0,00".
             5. DESCONTO: Se houver texto como "XX% de desconto", mova para o campo "desconto".
 
             JSON ESPERADO: 
-            [{"header": "Nome Lista", "itens": [{"desc": "Nome", "preco": "X,XX", "cod": "123/456", "clube": "X,XX", "nome_clube": "Save/Cartão", "atacado": "Apenas regras de qtd ou parenteses", "desconto": "20%"}]}]
+            [{"header": "Nome Lista", "itens": [{"desc": "Nome", "preco": "X,XX", "cod": "123/456", "clube": "X,XX", "nome_clube": "Save/Cartão", "atacado": "Apenas regras de qtd", "desconto": "20%"}]}]
             
             TEXTO: ${text}`;
             
@@ -431,9 +433,7 @@
                 });
                 const data = await response.json();
                 
-                if (data.message && data.message.includes("removed")) {
-                    throw new Error("Modelo descontinuado. Vá na engrenagem e troque para 'command-r-plus-08-2024'.");
-                }
+                if (data.message && data.message.includes("removed")) throw new Error("Modelo descontinuado. Vá na engrenagem e troque para 'command-r-plus-08-2024'.");
                 if (data.message) throw new Error(data.message);
                 
                 window.lastRawResponse = data.text;
@@ -443,14 +443,8 @@
 
                 rawData.forEach(lista => {
                     lista.itens.forEach(item => {
-                        item.desc = formatText(item.desc);
-                        
-                        // LIMPEZA DE REDUNDÂNCIA
-                        if (item.atacado) {
-                            item.atacado = cleanAtacadoField(item.atacado);
-                        }
-                        
-                        if (!item.preco || item.preco === "null") item.preco = "0,00";
+                        // Aplica a lógica de correção inteligente
+                        smartCorrectItem(item);
                     });
                 });
                 
@@ -478,7 +472,6 @@
                         let final = city;
                         if (city === "Santa Bárbara") final = "Santa Bárbara d'Oeste";
                         if (city === "Mogi") final = "Mogi Guaçu";
-                        
                         data[i].cityList.push(final);
                         specificCities.push(city);
                     }
@@ -535,10 +528,8 @@
                     let cardDisplay = (item.nome_clube && item.nome_clube.toLowerCase().includes('cartão')) ? `<span class="price-label text-blue">NOSSO CARTÃO</span>R$ ${item.clube}` : '-';
                     let clubDisplay = (item.nome_clube && !item.nome_clube.toLowerCase().includes('cartão') && item.clube) ? `<span class="price-label text-pink">${labelClubText}</span>R$ ${item.clube}` : '-';
                     let atacadoDisplay = item.atacado ? `<span class="price-label text-purple">ATACADO / REGRAS</span>${item.atacado}` : '-';
-                    let discountDisplay = item.desconto || '-';
                     let rowStyle = "";
 
-                    // DIFF LOGIC
                     if (idx > 0 && listaGeral) {
                         let refItem = null;
                         if(item.cod) {
@@ -574,15 +565,13 @@
 
                     if(showRow) {
                         const orderCell = idx === 0 ? `<input type="number" class="order-input" style="padding: 5px; text-align: center; width: 50px;" value="${i + 1}">` : `<span style="color: #94a3b8; font-weight: 700; font-size: 0.75rem;">${i + 1}</span>`;
-                        const baseUrl = CURRENT_COMPANY === 'SAVEGNAGO' ? 'https://www.savegnago.com.br/' : 'https://www.paulistaoatacadista.com.br/';
-                        
                         let linkHtml = '<span style="color: #cbd5e1;">-</span>';
                         if(item.cod) {
                             const codes = item.cod.toString().replace(/red\./gi, '').split(/[\/,\s]+/);
                             linkHtml = '<div style="display: flex; flex-direction: column; gap: 4px; align-items: center;">';
                             codes.forEach(c => {
                                 let clean = c.replace(/[^0-9]/g, '');
-                                if(clean) linkHtml += `<div style="background: #f8fafc; padding: 2px 6px; border-radius: 4px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 4px;"><a href="${baseUrl}${clean}" target="_blank" class="sku-link" style="background: none; padding: 0; font-size: 0.7rem; text-decoration: none; color: var(--active-brand); font-weight: 700;">${clean} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 8px; opacity: 0.5;"></i></a><i class="fa-regular fa-copy" style="cursor: pointer; font-size: 0.7rem; color: #94a3b8;" onclick="animateCopyBtn(this, '${clean}')"></i></div>`;
+                                if(clean) linkHtml += `<div style="background: #f8fafc; padding: 2px 6px; border-radius: 4px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 4px;"><span style="font-size: 0.7rem; color: #334155; font-weight: 700;">${clean}</span></div>`;
                             });
                             linkHtml += '</div>';
                         }
@@ -618,7 +607,6 @@
             });
         }
 
-        // --- UTILS ---
         function animateCopyBtn(el, text) { navigator.clipboard.writeText(text); const o=el.className; el.className="fa-solid fa-check"; el.style.color="#16a34a"; setTimeout(()=>{el.className="fa-regular fa-copy"; el.style.color="#94a3b8";},1500); showToast("Copiado!"); }
         function copyAndStrike(el, text) { navigator.clipboard.writeText(text); const span = el.previousElementSibling; if(span) span.style.textDecoration = "line-through"; span.style.opacity = "0.5"; animateCopyBtn(el, text); }
         function copyToClip(text) { navigator.clipboard.writeText(text); showToast("Copiado!"); }
@@ -641,7 +629,6 @@
             } catch(e) { alert("Erro ao gerar PDF"); }
         }
 
-        // Modais
         function openConfigModal() { document.getElementById("configModal").style.display = "flex"; }
         function closeConfigModal() { document.getElementById("configModal").style.display = "none"; }
         function saveApiKey() { localStorage.setItem("cohere_api_key", document.getElementById("apiKeyInput").value); API_KEY = document.getElementById("apiKeyInput").value; closeConfigModal(); }
