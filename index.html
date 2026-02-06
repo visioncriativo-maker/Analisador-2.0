@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analisador v19.8 - Sem Limite de Tempo</title>
+    <title>Analisador v19.9 - 2026 Update</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -14,7 +14,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 
     <style>
-        /* --- ESTILO VISUAL --- */
         :root { --brand-save: #2563eb; --brand-paul: #dc2626; --bg-body: #f0f9ff; }
         body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); color: #1e293b; margin: 0; padding: 20px; min-height: 100vh; transition: background 0.5s ease; }
         body.theme-savegnago { --active-brand: #2563eb; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); }
@@ -70,8 +69,8 @@
                 <i class="fa-solid fa-brain" style="font-size: 26px; color: #7e22ce;"></i>
             </div>
             <div>
-                <h1 style="margin: 0; font-size: 1.4rem; font-weight: 800; color: #1e293b;">Analisador v19.8</h1>
-                <p style="margin: 0; font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase;">No Time Limit</p>
+                <h1 style="margin: 0; font-size: 1.4rem; font-weight: 800; color: #1e293b;">Analisador v19.9</h1>
+                <p style="margin: 0; font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase;">2026 Compatible</p>
             </div>
             <div style="height: 40px; width: 1px; background: #e2e8f0; margin: 0 10px;"></div>
             <button onclick="toggleCompany()" class="btn btn-neutral" id="companySwitcher">
@@ -126,8 +125,8 @@
             <div style="margin-bottom: 20px;">
                 <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; display: block; margin-bottom: 8px;">MODELO (2026 Compatible)</label>
                 <select id="modelSelect" class="input-box">
-                    <option value="command-r-08-2024">command-r-08-2024 (Rápido/Padrão)</option>
-                    <option value="command-r-plus-08-2024">command-r-plus-08-2024 (Lento/Potente)</option>
+                    <option value="command-r-08-2024">command-r-08-2024 (Rápido - Padrão)</option>
+                    <option value="command-r-plus-08-2024">command-r-plus-08-2024 (Lento - Potente)</option>
                 </select>
             </div>
             <div style="margin-bottom: 30px;">
@@ -175,11 +174,18 @@
         
         const CORRECTIONS = { "muçarela": "Mussarela", "mussarela": "Mussarela", "pateko": "Patéko", "páteko": "Patéko", "contra filé": "Contrafilé", "contra-filé": "Contrafilé", "pêra": "Pera", "1l": "1L", "2l": "2L", "3l": "3L", "5l": "5L", "10l": "10L", "1,3l": "1,3L", "1,5l": "1,5L", "1.5l": "1,5L", "1,5": "1,5", "tub": "Tubo", "tubo": "Tubo", "mms": "M&Ms", "m&m": "M&Ms", "kilo": "kg", "sbp": "SBP", "off": "OFF", "on": "ON", "uni": "un", "unid": "un" };
         
+        // --- AUTO-RESET MODELO ANTIGO ---
+        let storedModel = localStorage.getItem('cohere_model');
+        if (!storedModel || storedModel.indexOf('2024') === -1) {
+            console.log("Modelo antigo detectado. Resetando para 2026...");
+            localStorage.setItem('cohere_model', 'command-r-08-2024');
+        }
+
         window.systemLogs = []; window.lastRawResponse = ""; window.lastParsedData = null;
         function logSystem(m, t='INFO') { window.systemLogs.push(`[${new Date().toLocaleTimeString()}] [${t}] ${m}`); if(t==='ERROR') console.error(m); else console.log(m); }
         
         let API_KEY = localStorage.getItem('cohere_api_key');
-        let SELECTED_MODEL = localStorage.getItem('cohere_model') || 'command-r-08-2024';
+        let SELECTED_MODEL = localStorage.getItem('cohere_model');
         let CURRENT_COMPANY = localStorage.getItem('company') || 'SAVEGNAGO';
         let MASTER_CITIES = (CURRENT_COMPANY === 'SAVEGNAGO') ? CITIES_SAVEGNAGO : CITIES_PAULISTAO;
         let CURRENT_USER = localStorage.getItem('user');
@@ -205,12 +211,15 @@
             }
         });
 
+        // --- JSON SANITIZER REFORÇADO ---
         function extractJSON(str) {
-            const firstOpen = str.indexOf('['); const lastClose = str.lastIndexOf(']');
-            if (firstOpen !== -1 && lastClose !== -1) return str.substring(firstOpen, lastClose + 1);
-            const firstObj = str.indexOf('{'); const lastObj = str.lastIndexOf('}');
-            if (firstObj !== -1 && lastObj !== -1) return "[" + str.substring(firstObj, lastObj + 1) + "]";
-            throw new Error("JSON não encontrado.");
+            // Remove markdown e sujeira comum
+            let clean = str.replace(/```json/g, '').replace(/```/g, '').replace(/^json/i, '');
+            const firstOpen = clean.indexOf('['); const lastClose = clean.lastIndexOf(']');
+            if (firstOpen !== -1 && lastClose !== -1) return clean.substring(firstOpen, lastClose + 1);
+            const firstObj = clean.indexOf('{'); const lastObj = clean.lastIndexOf('}');
+            if (firstObj !== -1 && lastObj !== -1) return "[" + clean.substring(firstObj, lastObj + 1) + "]";
+            throw new Error("Não foi possível ler os dados (JSON inválido).");
         }
 
         function cleanAtacadoField(text) {
@@ -218,6 +227,7 @@
             let cleaned = text;
             const forbidden = ["save ganhe", "nosso cartão", "cliente campeão", "save ganhe:", "nosso cartão:", "cliente campeão:"];
             forbidden.forEach(term => { cleaned = cleaned.replace(new RegExp(`${term}.*?(\\d+,\\d{2})?`, "gi"), "").trim(); });
+            // Remove códigos
             cleaned = cleaned.replace(/red\.?\s*[\d\/]+/gi, "").replace(/\(red\.?\s*[\d\/]+\)/gi, "").replace(/^\s*[\d\/]+\s*$/, ""); 
             cleaned = cleaned.replace(/^[\s,]+|[\s,]+$/g, "");
             return cleaned;
@@ -296,18 +306,15 @@
             document.getElementById('resultsArea').innerHTML = ''; 
             document.getElementById('summaryPanel').classList.add('hidden');
             
-            // REMOVIDO TIMEOUT - Deixado fetch puro
-            const prompt = `Você é um especialista em extração de dados JSON. Analise o texto e extraia as ofertas.
-            REGRAS CRÍTICAS:
-            1. CLUBE/CARTÃO: Se oferta for 'Save Ganhe', 'Cliente Campeão' ou 'Nosso Cartão', coloque valor em 'clube' e nome em 'nome_clube'. JAMAIS coloque isso em 'atacado'.
-            2. ATACADO: Este campo é EXCLUSIVO para regras de volume (ex: 'Leve 3 Pague 2', 'A partir de X unid', 'Nesta embalagem sai...') ou textos entre parênteses genéricos.
-            3. MULTI-SKU: Capture TODOS os códigos (ex: 123/456) separados por barra.
-            4. PREÇO: Se vazio, use "0,00".
-            5. DESCONTO: Se houver texto como "XX% de desconto", mova para o campo "desconto".
-
-            JSON ESPERADO: 
-            [{"header": "Nome Lista", "itens": [{"desc": "Nome", "preco": "X,XX", "cod": "123/456", "clube": "X,XX", "nome_clube": "Save/Cartão", "atacado": "Apenas regras de qtd", "desconto": "20%"}]}]
-            
+            // PROMPT OTIMIZADO
+            const prompt = `Você é um especialista em extração de dados JSON. Extraia ofertas.
+            REGRAS:
+            1. CLUBE: Se 'Save Ganhe', 'Cliente Campeão', 'Nosso Cartão', ponha em 'clube'. NÃO em 'atacado'.
+            2. ATACADO: Só regras ('Leve 3', 'A partir de...', parenteses). SEM códigos.
+            3. MULTI-SKU: Capture códigos 123/456.
+            4. DESCONTO: Mova 'XX% desconto' para 'desconto'.
+            5. RETORNE APENAS JSON. SEM TEXTO.
+            FORMATO: [{"header": "Nome", "itens": [{"desc": "Nome", "preco": "X,XX", "cod": "123", "clube": "X,XX", "nome_clube": "Save", "atacado": "Regras", "desconto": "20%"}]}]
             TEXTO: ${text}`;
             
             try {
@@ -324,7 +331,7 @@
                 
                 const data = await response.json();
                 
-                if (data.message && data.message.includes("removed")) throw new Error("Modelo descontinuado. Vá na engrenagem.");
+                if (data.message && data.message.includes("removed")) throw new Error("Modelo desatualizado. Salve a engrenagem novamente.");
                 if (data.message) throw new Error(data.message);
                 
                 window.lastRawResponse = data.text;
