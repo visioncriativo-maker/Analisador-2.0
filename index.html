@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analisador v19.1 - Separação Clube/Atacado</title>
+    <title>Analisador v19.2 - Timer & Kilo Fix</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -15,7 +15,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 
     <style>
-        /* --- ESTILO VISUAL (GLASSMORPHISM) --- */
+        /* --- ESTILO VISUAL --- */
         :root {
             --brand-save: #2563eb;
             --brand-paul: #dc2626;
@@ -32,24 +32,19 @@
             transition: background 0.5s ease;
         }
 
-        /* Temas */
         body.theme-savegnago { --active-brand: #2563eb; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); }
         body.theme-paulistao { --active-brand: #dc2626; background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); }
 
-        /* Card Principal */
         .glass-card {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.5);
             border-radius: 16px;
             box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.1);
             margin-bottom: 25px;
             overflow: hidden;
-            transition: transform 0.2s ease;
         }
 
-        /* Header */
         .header-container {
             display: flex;
             justify-content: space-between;
@@ -59,7 +54,6 @@
             gap: 20px;
         }
 
-        /* Inputs */
         .input-box {
             width: 100%;
             padding: 14px 16px;
@@ -68,13 +62,12 @@
             font-size: 14px;
             font-family: 'Inter', monospace;
             outline: none;
-            transition: all 0.2s;
+            transition: 0.2s;
             background: rgba(255, 255, 255, 0.8);
             box-sizing: border-box;
         }
         .input-box:focus { border-color: var(--active-brand); box-shadow: 0 0 0 4px rgba(37,99,235,0.1); background: white; }
 
-        /* Botões */
         .btn {
             padding: 12px 24px;
             border-radius: 10px;
@@ -89,10 +82,8 @@
             font-size: 0.95rem;
             color: white;
             text-decoration: none;
-            position: relative;
-            overflow: hidden;
         }
-        .btn:hover { transform: translateY(-2px); filter: brightness(1.1); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
         .btn:active { transform: scale(0.98); }
         
         .btn-primary { background: linear-gradient(135deg, var(--active-brand), #1e40af); }
@@ -101,19 +92,17 @@
         .btn-neutral { background: white; color: #475569; border: 1px solid #e2e8f0; }
         .btn-warning { background: linear-gradient(135deg, #f59e0b, #d97706); }
         .btn-success { background: linear-gradient(135deg, #10b981, #059669); }
+        .btn-timer-active { background: linear-gradient(135deg, #f97316, #ea580c); animation: pulse 2s infinite; }
         .btn-bug { background: #fee2e2; color: #dc2626; padding: 10px 14px; }
 
-        /* Tabela */
         .table-wrapper { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; min-width: 900px; }
-        th { background: #f8fafc; color: #64748b; font-weight: 800; text-transform: uppercase; font-size: 0.7rem; padding: 16px; text-align: center; border-bottom: 2px solid #e2e8f0; white-space: nowrap; letter-spacing: 0.5px; }
+        th { background: #f8fafc; color: #64748b; font-weight: 800; text-transform: uppercase; font-size: 0.7rem; padding: 16px; text-align: center; border-bottom: 2px solid #e2e8f0; white-space: nowrap; }
         td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; vertical-align: middle; color: #334155; }
-        tr:last-child td { border-bottom: none; }
         tr:hover { background-color: #f8fafc; }
 
-        /* Utilitários */
         .diff-old { text-decoration: line-through; color: #ef4444; font-size: 0.75em; display: block; margin-top: 3px; opacity: 0.7; }
-        .price-label { font-size: 0.65rem; text-transform: uppercase; font-weight: 900; display: block; margin-bottom: 4px; opacity: 0.9; letter-spacing: 0.5px; }
+        .price-label { font-size: 0.65rem; text-transform: uppercase; font-weight: 900; display: block; margin-bottom: 4px; opacity: 0.9; }
         .text-blue { color: #2563eb; }
         .text-pink { color: #db2777; }
         .text-purple { color: #7c3aed; }
@@ -121,17 +110,16 @@
         .bg-changed { background-color: #fff7ed !important; }
         .hidden { display: none !important; }
         
-        /* Modal & Loader */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1000; display: none; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
         .modal-box { background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 450px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); animation: zoomIn 0.2s ease; }
         @keyframes zoomIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         
         .spinner { width: 18px; height: 18px; border: 3px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 1s linear infinite; display: inline-block; }
         @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .8; } }
 
-        /* Toast */
         #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 2000; display: flex; flex-direction: column; gap: 10px; }
-        .toast { background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 14px 24px; border-radius: 12px; font-weight: 600; box-shadow: 0 10px 20px -5px rgba(0,0,0,0.2); animation: slideIn 0.3s ease; display: flex; align-items: center; gap: 10px; }
+        .toast { background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 14px 24px; border-radius: 12px; font-weight: 600; box-shadow: 0 10px 20px -5px rgba(0,0,0,0.2); animation: slideIn 0.3s ease; }
         @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
 
         .order-input {
@@ -144,7 +132,6 @@
             color: #334155;
             background: #f8fafc;
         }
-        .order-input:focus { border-color: var(--active-brand); background: white; }
     </style>
 </head>
 
@@ -156,25 +143,21 @@
                 <i class="fa-solid fa-brain" style="font-size: 26px; color: #7e22ce;"></i>
             </div>
             <div>
-                <h1 style="margin: 0; font-size: 1.4rem; font-weight: 800; color: #1e293b; letter-spacing: -0.5px;">Analisador v19.1</h1>
-                <p style="margin: 0; font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Separação Clube/Atacado</p>
+                <h1 style="margin: 0; font-size: 1.4rem; font-weight: 800; color: #1e293b; letter-spacing: -0.5px;">Analisador v19.2</h1>
+                <p style="margin: 0; font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Timer & Kilo Fix</p>
             </div>
-            
             <div style="height: 40px; width: 1px; background: #e2e8f0; margin: 0 10px;"></div>
-
             <button onclick="toggleCompany()" class="btn btn-neutral" id="companySwitcher">
                 <img id="switcherLogo" src="" style="height: 24px; width: auto; margin-right: 8px;">
                 <span id="companyLabel" style="font-weight: 800; color: #1e293b; font-size: 1rem;">SAVEGNAGO</span>
                 <i class="fa-solid fa-repeat" style="color: #94a3b8; margin-left: 8px;"></i>
             </button>
         </div>
-
         <div style="display: flex; gap: 10px; align-items: center;">
             <div id="userInfo" class="hidden" style="text-align: right; margin-right: 15px;">
                 <div style="font-size: 0.65rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Usuário</div>
                 <div style="font-weight: 700; color: #334155;" id="userNameDisplay">Visitante</div>
             </div>
-            
             <button onclick="generateBugReport()" class="btn btn-bug" title="Reportar Erro"><i class="fa-solid fa-bug"></i></button>
             <button onclick="openConfigModal()" class="btn btn-neutral" title="Configurar"><i class="fa-solid fa-gear"></i></button>
             <button id="authBtn" onclick="toggleAuth()" class="btn btn-primary">Entrar</button>
@@ -187,12 +170,10 @@
             <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 8px;">Nome da Demanda</label>
             <input type="text" id="demandInput" class="input-box" placeholder="Ex: Lâmina FDS...">
         </div>
-
         <div style="position: relative; margin-bottom: 25px;">
             <textarea id="inputText" class="input-box" style="height: 220px; resize: none; font-size: 13px; line-height: 1.5;" placeholder="Cole a lista aqui..."></textarea>
             <div style="position: absolute; bottom: 12px; right: 12px; font-size: 0.7rem; color: #94a3b8; font-weight: 600; background: white; padding: 4px 8px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">Texto / JSON</div>
         </div>
-
         <div class="action-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px;">
             <button id="analyzeBtn" onclick="analyzeWithCohere()" class="btn btn-primary" style="padding: 16px;">
                 <i class="fa-solid fa-wand-magic-sparkles"></i> <span id="btnText">Analisar Ofertas</span>
@@ -227,7 +208,7 @@
 
     <footer style="text-align: center; padding: 40px; font-size: 0.75rem; color: #94a3b8;">
         <p style="margin-bottom: 5px; font-weight: 600;">Desenvolvido por Rendrix e Luan</p>
-        <p>v19.1 - Split Logic Fix</p>
+        <p>v19.2 - Timer Restored</p>
     </footer>
 
     <div id="configModal" class="modal-overlay">
@@ -280,8 +261,7 @@
     <div id="toast-container"></div>
 
     <script>
-        // --- LÓGICA DO SISTEMA ---
-        
+        // --- CONFIGURAÇÕES ---
         const CITIES_SAVEGNAGO = ["Americana", "Araraquara", "Araras", "Barretos", "Bebedouro", "Campinas", "Franca", "Hortolândia", "Indaiatuba", "Jaboticabal", "Jardinópolis", "Leme", "Limeira", "Matão", "Monte Alto", "Piracicaba", "Ribeirão Preto", "Rio Claro", "São Carlos", "Sertãozinho", "Sumaré"];
         const CITIES_PAULISTAO = ["Araraquara", "Barretos", "Campinas", "Franca", "Ribeirão Preto", "Santa Bárbara", "Rio Claro", "Sertãozinho", "Mogi"];
         const LOGO_SAVEGNAGO = "https://savegnagoio.vtexassets.com/assets/vtex/assets-builder/savegnagoio.store-theme/14.0.36/home/logo-save___ee8753fa9fd1e21018b817a0d020549f.png";
@@ -303,9 +283,13 @@
         let CURRENT_USER = localStorage.getItem('user');
         window.parsedData = [];
 
+        // INIT
         applyTheme(); updateUserUI();
         if (!API_KEY) setTimeout(openConfigModal, 500);
         document.getElementById('modelSelect').value = SELECTED_MODEL;
+
+        // --- TIMER VARIABLES ---
+        let tInt, tStart;
 
         function extractJSON(str) {
             const firstOpen = str.indexOf('[');
@@ -317,36 +301,36 @@
             throw new Error("A IA não retornou dados válidos (JSON).");
         }
 
-        // --- CORREÇÃO PÓS-PROCESSAMENTO ---
-        // Verifica se a IA colocou coisa errada no atacado e move
+        function cleanAtacadoField(text) {
+            if (!text) return "";
+            let cleaned = text;
+            const forbidden = [
+                "save ganhe", "nosso cartão", "cliente campeão", 
+                "save ganhe:", "nosso cartão:", "cliente campeão:"
+            ];
+            forbidden.forEach(term => {
+                const regex = new RegExp(`${term}.*?(\\d+,\\d{2})?`, "gi"); 
+                cleaned = cleaned.replace(regex, "").trim();
+            });
+            cleaned = cleaned.replace(/^[\s,]+|[\s,]+$/g, "");
+            return cleaned;
+        }
+
         function smartCorrectItem(item) {
-            // 1. Aplica formatação de texto (Title Case + Correções)
             item.desc = formatText(item.desc);
-            
-            // 2. Verifica se o campo ATACADO contém ofertas de Clube que deveriam estar em outro lugar
             if (item.atacado) {
                 const lowerAtacado = item.atacado.toLowerCase();
-                // Procura padrões de preço (R$ XX,XX) dentro do texto de atacado
                 const priceMatch = item.atacado.match(/R\$\s*(\d+,\d{2})/);
-                
                 if (lowerAtacado.includes("save ganhe") || lowerAtacado.includes("nosso cartão") || lowerAtacado.includes("cliente campeão")) {
-                    
-                    // Se achou um preço e o campo oficial do clube está vazio, move pra lá
                     if (priceMatch && (!item.clube || item.clube === "0,00" || item.clube === "null")) {
                         item.clube = priceMatch[1];
-                        // Tenta adivinhar o nome do clube baseado no texto
                         if (lowerAtacado.includes("nosso cartão")) item.nome_clube = "Nosso Cartão";
                         else if (lowerAtacado.includes("cliente campeão")) item.nome_clube = "Cliente Campeão";
                         else item.nome_clube = "Save Ganhe";
                     }
-                    
-                    // Remove o texto "poluído" do atacado
-                    item.atacado = item.atacado.replace(/(save ganhe|nosso cartão|cliente campeão).*?(R\$\s*\d+,\d{2})?/gi, "").trim();
-                    // Limpa pontuação solta
-                    item.atacado = item.atacado.replace(/^[\s\-\.,]+|[\s\-\.,]+$/g, "");
+                    item.atacado = cleanAtacadoField(item.atacado);
                 }
             }
-            
             if (!item.preco || item.preco === "null") item.preco = "0,00";
             return item;
         }
@@ -354,12 +338,16 @@
         function formatText(str) {
             if(!str) return "";
             let corrected = str;
+            // Correção de "kilo" e outras
             const keys = Object.keys(CORRECTIONS).sort((a,b) => b.length - a.length);
             keys.forEach(key => {
                 const regex = new RegExp(`\\b${key.replace('.','\\.')}\\b`, 'gi'); 
                 if (key.match(/\d/)) corrected = corrected.replace(new RegExp(key, 'gi'), CORRECTIONS[key]);
                 else corrected = corrected.replace(regex, CORRECTIONS[key]);
             });
+            // Correção adicional para KILO solto se não pego pelo \b
+            corrected = corrected.replace(/\s+kilo\s+/gi, " kg ");
+            
             const smallWords = /^(de|da|do|das|dos|e|em|na|no|nas|nos|com|por|para|o|a|os|as|um|uma|que|como|pelo|pela|ao|aos|ou)$/i;
             return corrected.split(' ').map((word, index) => {
                 if (Object.values(CORRECTIONS).includes(word)) return word;
@@ -443,7 +431,6 @@
 
                 rawData.forEach(lista => {
                     lista.itens.forEach(item => {
-                        // Aplica a lógica de correção inteligente
                         smartCorrectItem(item);
                     });
                 });
@@ -528,8 +515,10 @@
                     let cardDisplay = (item.nome_clube && item.nome_clube.toLowerCase().includes('cartão')) ? `<span class="price-label text-blue">NOSSO CARTÃO</span>R$ ${item.clube}` : '-';
                     let clubDisplay = (item.nome_clube && !item.nome_clube.toLowerCase().includes('cartão') && item.clube) ? `<span class="price-label text-pink">${labelClubText}</span>R$ ${item.clube}` : '-';
                     let atacadoDisplay = item.atacado ? `<span class="price-label text-purple">ATACADO / REGRAS</span>${item.atacado}` : '-';
+                    let discountDisplay = item.desconto || '-';
                     let rowStyle = "";
 
+                    // DIFF LOGIC
                     if (idx > 0 && listaGeral) {
                         let refItem = null;
                         if(item.cod) {
@@ -607,6 +596,7 @@
             });
         }
 
+        // --- UTILS ---
         function animateCopyBtn(el, text) { navigator.clipboard.writeText(text); const o=el.className; el.className="fa-solid fa-check"; el.style.color="#16a34a"; setTimeout(()=>{el.className="fa-regular fa-copy"; el.style.color="#94a3b8";},1500); showToast("Copiado!"); }
         function copyAndStrike(el, text) { navigator.clipboard.writeText(text); const span = el.previousElementSibling; if(span) span.style.textDecoration = "line-through"; span.style.opacity = "0.5"; animateCopyBtn(el, text); }
         function copyToClip(text) { navigator.clipboard.writeText(text); showToast("Copiado!"); }
@@ -615,7 +605,6 @@
         function reorder(idx) { renderAllTables(); showToast("Reordenado!"); }
         function exportXLS(idx) { const list=window.parsedData[idx]; const ws=XLSX.utils.json_to_sheet(list.itens); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Ofertas"); XLSX.writeFile(wb, `Lista_${idx}.xlsx`); }
         function clearAll() { document.getElementById("inputText").value=""; document.getElementById("resultsArea").innerHTML=""; document.getElementById("summaryPanel").classList.add("hidden"); window.parsedData=[]; }
-        
         function generateBugReport() {
             try {
                 const { jsPDF } = window.jspdf;
@@ -628,6 +617,22 @@
                 doc.save("BugReport.pdf");
             } catch(e) { alert("Erro ao gerar PDF"); }
         }
+
+        // TIMER LOGIC RESTORED
+        document.getElementById('timerButton').addEventListener('click', function () {
+            const btn = this; const display = document.getElementById('liveTimer'); const txt = document.getElementById('timerButtonText');
+            if (btn.classList.contains('btn-timer-active')) {
+                clearInterval(tInt); btn.classList.remove('btn-timer-active'); btn.classList.add('btn-warning'); txt.textContent = "Iniciar Timer"; display.classList.add('hidden');
+                // Salva histórico
+                const end = new Date(); const dur = new Date(end - tStart).toISOString().substr(11, 8);
+                const hist = JSON.parse(localStorage.getItem('appHistory') || '[]');
+                hist.unshift({ date: new Date().toLocaleDateString(), company: CURRENT_COMPANY, demand: document.getElementById('demandInput').value || "Sem Título", user: CURRENT_USER || 'Visitante', dur });
+                localStorage.setItem('appHistory', JSON.stringify(hist)); showToast("Tempo Salvo!");
+            } else {
+                tStart = new Date(); btn.classList.add('btn-timer-active'); btn.classList.remove('btn-warning'); txt.textContent = "Parar"; display.classList.remove('hidden');
+                tInt = setInterval(() => { display.textContent = new Date(new Date() - tStart).toISOString().substr(11, 8); }, 1000);
+            }
+        });
 
         function openConfigModal() { document.getElementById("configModal").style.display = "flex"; }
         function closeConfigModal() { document.getElementById("configModal").style.display = "none"; }
