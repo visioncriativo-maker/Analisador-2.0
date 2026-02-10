@@ -4,9 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analisador v19.11 - Full Sweep</title>
+    <title>Analisador v18.2 - Blindado</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -14,71 +15,164 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 
     <style>
-        :root { --brand-save: #2563eb; --brand-paul: #dc2626; --bg-body: #f0f9ff; }
-        body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); color: #1e293b; margin: 0; padding: 20px; min-height: 100vh; transition: background 0.5s ease; }
-        body.theme-savegnago { --active-brand: #2563eb; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); }
-        body.theme-paulistao { --active-brand: #dc2626; background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); }
+        /* --- ESTILO DE SEGURANÇA (FALLBACK) --- 
+           Garante o visual bonito mesmo se o Tailwind falhar */
+        
+        :root {
+            --brand-save: #2563eb;
+            --brand-paul: #dc2626;
+            --bg-body: #f0f9ff;
+        }
 
-        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 16px; box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.1); margin-bottom: 25px; overflow: hidden; }
-        .header-container { display: flex; justify-content: space-between; align-items: center; padding: 20px 30px; flex-wrap: wrap; gap: 20px; }
-        .input-box { width: 100%; padding: 14px 16px; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 14px; outline: none; transition: 0.2s; background: rgba(255, 255, 255, 0.8); }
-        .input-box:focus { border-color: var(--active-brand); box-shadow: 0 0 0 4px rgba(37,99,235,0.1); background: white; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-body);
+            color: #1e293b;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
 
-        .btn { padding: 12px 24px; border-radius: 10px; font-weight: 700; cursor: pointer; border: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; font-size: 0.95rem; color: white; }
+        /* Temas */
+        body.theme-savegnago { --active-brand: #2563eb; --active-bg: linear-gradient(135deg, #f0f9ff 0%, #dbeafe 100%); }
+        body.theme-paulistao { --active-brand: #dc2626; --active-bg: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); }
+        
+        body { background: var(--active-bg, #f0f9ff); }
+
+        /* Containers */
+        .header-container {
+            background: white;
+            border-radius: 16px;
+            padding: 15px 25px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 15px;
+            border: 1px solid rgba(255,255,255,0.8);
+        }
+
+        .main-card {
+            background: rgba(255,255,255,0.9);
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.5);
+            margin-bottom: 25px;
+        }
+
+        /* Inputs */
+        .input-box {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Inter', monospace;
+            outline: none;
+            transition: 0.2s;
+            box-sizing: border-box;
+            background: white;
+        }
+        .input-box:focus { border-color: var(--active-brand); box-shadow: 0 0 0 3px rgba(0,0,0,0.1); }
+
+        /* Botões */
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+            color: white;
+            text-decoration: none;
+        }
         .btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
-        .btn-primary { background: linear-gradient(135deg, var(--active-brand), #1e40af); }
+        .btn:active { transform: scale(0.98); }
+        
+        .btn-primary { background: var(--active-brand); }
         .btn-neutral { background: white; color: #475569; border: 1px solid #e2e8f0; }
-        .btn-warning { background: linear-gradient(135deg, #f59e0b, #d97706); }
-        .btn-success { background: linear-gradient(135deg, #10b981, #059669); }
-        .btn-timer-active { background: linear-gradient(135deg, #f97316, #ea580c); animation: pulse 2s infinite; }
-        .btn-bug { background: #fee2e2; color: #dc2626; padding: 10px 14px; }
+        .btn-warning { background: #f59e0b; }
+        .btn-success { background: #10b981; }
+        .btn-bug { background: #fee2e2; color: #dc2626; padding: 8px 12px; font-size: 0.85rem;}
+        
+        /* Grid */
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
 
-        .table-wrapper { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; min-width: 900px; }
-        th { background: #f8fafc; color: #64748b; font-weight: 800; text-transform: uppercase; font-size: 0.7rem; padding: 16px; text-align: center; border-bottom: 2px solid #e2e8f0; white-space: nowrap; }
-        td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; vertical-align: middle; color: #334155; }
+        /* Tabela */
+        .table-container { overflow-x: auto; border-radius: 12px; background: white; }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        th { background: #f1f5f9; color: #64748b; font-weight: 800; text-transform: uppercase; font-size: 0.7rem; padding: 15px; text-align: center; border-bottom: 2px solid #e2e8f0; white-space: nowrap; }
+        td { padding: 12px 15px; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; vertical-align: middle; color: #334155; }
+        tr:last-child td { border-bottom: none; }
         tr:hover { background-color: #f8fafc; }
 
-        .diff-old { text-decoration: line-through; color: #ef4444; font-size: 0.75em; display: block; margin-top: 3px; opacity: 0.7; }
-        .price-label { font-size: 0.65rem; text-transform: uppercase; font-weight: 900; display: block; margin-bottom: 4px; opacity: 0.9; }
+        /* Utilitários Visuais */
+        .diff-old { text-decoration: line-through; color: #ef4444; font-size: 0.75em; display: block; margin-top: 2px; opacity: 0.7; }
+        .price-label { font-size: 0.65rem; text-transform: uppercase; font-weight: 900; display: block; margin-bottom: 4px; opacity: 0.8; letter-spacing: 0.5px; }
+        .text-blue { color: #2563eb; }
+        .text-pink { color: #db2777; }
+        .text-purple { color: #7c3aed; }
         .bg-new { background-color: #f0fdf4 !important; }
-        .bg-changed { background-color: #fff7ed !important; }
+        .bg-changed { background-color: #fefce8 !important; }
+        .flex { display: flex; align-items: center; }
         .hidden { display: none !important; }
         
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1000; display: none; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
-        .modal-box { background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 450px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); animation: zoomIn 0.2s ease; }
-        @keyframes zoomIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        
+        /* Modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; display: none; justify-content: center; align-items: center; backdrop-filter: blur(4px); }
+        .modal-box { background: white; padding: 30px; border-radius: 16px; width: 90%; max-width: 450px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); animation: slideUp 0.3s ease; position: relative; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        /* Loader */
         .spinner { width: 18px; height: 18px; border: 3px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 1s linear infinite; display: inline-block; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .8; } }
-
+        
+        /* Toast */
         #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 2000; display: flex; flex-direction: column; gap: 10px; }
-        .toast { background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 14px 24px; border-radius: 12px; font-weight: 600; box-shadow: 0 10px 20px -5px rgba(0,0,0,0.2); animation: slideIn 0.3s ease; }
+        .toast { background: #10b981; color: white; padding: 12px 20px; border-radius: 8px; font-weight: 600; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); animation: slideIn 0.3s ease; }
+        .toast.error { background: #ef4444; }
         @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
-
-        .order-input { width: 40px; text-align: center; padding: 4px 0; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: 700; color: #334155; background: #f8fafc; }
     </style>
 </head>
 
 <body class="theme-savegnago">
 
-    <div class="glass-card header-container">
-        <div style="display: flex; align-items: center; gap: 15px;">
-            <div style="background: #f3e8ff; padding: 12px; border-radius: 14px;">
-                <i class="fa-solid fa-brain" style="font-size: 26px; color: #7e22ce;"></i>
+    <div class="header-container">
+        <div class="flex" style="gap: 15px; flex-wrap: wrap;">
+            <div style="background: #f3e8ff; padding: 10px; border-radius: 12px;">
+                <i class="fa-solid fa-brain" style="font-size: 24px; color: #7e22ce;"></i>
             </div>
             <div>
-                <h1 style="margin: 0; font-size: 1.4rem; font-weight: 800; color: #1e293b;">Analisador v19.11</h1>
-                <p style="margin: 0; font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Full Sweep Mode</p>
+                <h1 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: #1e293b;">Analisador v18.2</h1>
+                <p style="margin: 0; font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Blindado & Anti-Erro</p>
             </div>
-            <div style="height: 40px; width: 1px; background: #e2e8f0; margin: 0 10px;"></div>
-            <button onclick="toggleCompany()" class="btn btn-neutral" id="companySwitcher">
+            
+            <button onclick="toggleCompany()" class="btn btn-neutral" id="companySwitcher" style="margin-left: auto;">
                 <img id="switcherLogo" src="" style="height: 24px; width: auto; margin-right: 8px;">
                 <span id="companyLabel" style="font-weight: 800; color: #1e293b; font-size: 1rem;">SAVEGNAGO</span>
+                <i class="fa-solid fa-repeat" style="color: #94a3b8; margin-left: 8px;"></i>
             </button>
         </div>
-        <div style="display: flex; gap: 10px; align-items: center;">
+
+        <div class="flex" style="gap: 10px; flex-wrap: wrap; justify-content: flex-end; width: 100%; margin-top: 10px;">
+            <div id="userInfo" class="hidden" style="text-align: right; margin-right: 10px;">
+                <div style="font-size: 0.65rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Usuário</div>
+                <div style="font-weight: 700; color: #334155;" id="userNameDisplay">Visitante</div>
+            </div>
+            
             <button onclick="generateBugReport()" class="btn btn-bug" title="Reportar Erro"><i class="fa-solid fa-bug"></i></button>
             <button onclick="openConfigModal()" class="btn btn-neutral" title="Configurar"><i class="fa-solid fa-gear"></i></button>
             <button id="authBtn" onclick="toggleAuth()" class="btn btn-primary">Entrar</button>
@@ -86,23 +180,25 @@
         </div>
     </div>
 
-    <main class="glass-card" style="padding: 30px;">
-        <div style="margin-bottom: 25px;">
+    <main class="main-card">
+        <div style="margin-bottom: 20px;">
             <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 8px;">Nome da Demanda</label>
             <input type="text" id="demandInput" class="input-box" placeholder="Ex: Lâmina FDS...">
         </div>
-        <div style="position: relative; margin-bottom: 25px;">
-            <textarea id="inputText" class="input-box" style="height: 220px; resize: none; font-size: 13px; line-height: 1.5;" placeholder="Cole a lista aqui..."></textarea>
-            <div style="position: absolute; bottom: 12px; right: 12px; font-size: 0.7rem; color: #94a3b8; font-weight: 600; background: white; padding: 4px 8px; border-radius: 6px;">Texto / JSON</div>
+
+        <div style="position: relative; margin-bottom: 20px;">
+            <textarea id="inputText" class="input-box" style="height: 200px; resize: none; placeholder="Cole a lista aqui..."></textarea>
+            <div style="position: absolute; bottom: 10px; right: 10px; font-size: 0.7rem; color: #94a3b8; font-weight: 600; background: white; padding: 2px 6px; border-radius: 4px;">Texto / JSON</div>
         </div>
-        <div class="action-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px;">
+
+        <div class="action-grid">
             <button id="analyzeBtn" onclick="analyzeWithCohere()" class="btn btn-primary" style="padding: 16px;">
-                <i class="fa-solid fa-wand-magic-sparkles"></i> <span id="btnText">Analisar (Varredura)</span>
+                <i class="fa-solid fa-wand-magic-sparkles"></i> <span id="btnText">Analisar Ofertas</span>
                 <div id="loadingSpinner" class="spinner hidden" style="margin-left: 10px;"></div>
             </button>
             <button id="timerButton" class="btn btn-warning">
                 <i class="fa-solid fa-stopwatch"></i> <span id="timerButtonText">Iniciar Timer</span>
-                <span id="liveTimer" class="hidden" style="margin-left: 10px; background: rgba(255,255,255,0.25); padding: 2px 8px; border-radius: 6px; font-family: monospace;">00:00:00</span>
+                <span id="liveTimer" class="hidden" style="margin-left: 8px; background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px; font-family: monospace;">00:00:00</span>
             </button>
             <button onclick="clearAll()" class="btn btn-neutral" style="color: #ef4444;">
                 <i class="fa-solid fa-trash-can"></i> Limpar Tudo
@@ -110,48 +206,64 @@
         </div>
     </main>
 
-    <div id="summaryPanel" class="glass-card hidden" style="padding: 0;">
-        <div style="padding: 15px 30px; border-bottom: 1px solid #e2e8f0; font-weight: 700; color: #334155; background: #f8fafc; display: flex; align-items: center; gap: 10px;">
-            <i class="fa-solid fa-chart-simple" style="color: var(--active-brand);"></i> Resumo
+    <div id="summaryPanel" class="main-card hidden" style="padding: 0; overflow: hidden;">
+        <div style="padding: 15px 25px; border-bottom: 1px solid #e2e8f0; font-weight: 700; color: #334155; background: #f8fafc; display: flex; align-items: center; gap: 10px;">
+            <i class="fa-solid fa-chart-simple" style="color: var(--active-brand);"></i> Resumo da Análise
         </div>
-        <table style="width: 100%;"><tbody id="summaryBody"></tbody></table>
+        <table style="width: 100%;">
+            <tbody id="summaryBody"></tbody>
+            <tfoot style="background: #f1f5f9; font-weight: 800; color: var(--active-brand);">
+                <tr>
+                    <td style="text-align: right; padding-right: 20px;">TOTAL GERAL:</td>
+                    <td id="totalCount" style="width: 100px; text-align: center;">0</td>
+                </tr>
+            </tfoot>
+        </table>
     </div>
 
     <div id="resultsArea"></div>
 
+    <footer style="text-align: center; padding: 30px; font-size: 0.75rem; color: #94a3b8;">
+        <p>Desenvolvido por Rendrix e Luan</p>
+        <p>v18.2 - Stable Core</p>
+    </footer>
+
     <div id="configModal" class="modal-overlay">
         <div class="modal-box">
-            <h2 style="margin: 0; color: #1e293b; font-size: 1.4rem; font-weight: 800; margin-bottom: 20px;">Configurar IA</h2>
-            <div style="margin-bottom: 20px;">
-                <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; display: block; margin-bottom: 8px;">MODELO (2026 Compatible)</label>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0; color: #1e293b; font-size: 1.25rem; font-weight: 800;">Configurar IA</h2>
+                <i class="fa-solid fa-xmark" style="cursor: pointer; color: #94a3b8; font-size: 1.2rem;" onclick="closeConfigModal()"></i>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; display: block; margin-bottom: 5px;">MODELO</label>
                 <select id="modelSelect" class="input-box">
-                    <option value="command-r-08-2024">command-r-08-2024 (Rápido)</option>
-                    <option value="command-r-plus-08-2024">command-r-plus-08-2024 (Potente)</option>
+                    <option value="command">command (Estável)</option>
+                    <option value="command-light">command-light (Rápido)</option>
+                    <option value="command-nightly">command-nightly (Experimental)</option>
                 </select>
             </div>
-            <div style="margin-bottom: 30px;">
-                <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; display: block; margin-bottom: 8px;">API KEY</label>
+            <div style="margin-bottom: 25px;">
+                <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; display: block; margin-bottom: 5px;">API KEY</label>
                 <input type="password" id="apiKeyInput" class="input-box" placeholder="Cole sua chave aqui...">
             </div>
-            <button onclick="saveApiKey()" class="btn btn-primary" style="width: 100%;">Salvar</button>
-            <button onclick="closeConfigModal()" class="btn btn-neutral" style="width: 100%; margin-top: 10px;">Fechar</button>
+            <button onclick="saveApiKey()" class="btn btn-primary" style="width: 100%;">Salvar Configurações</button>
         </div>
     </div>
-
+    
     <div id="loginModal" class="modal-overlay">
         <div class="modal-box" style="text-align: center;">
              <h2 style="margin: 0; color: #1e293b; font-size: 1.5rem; font-weight: 800;">Identifique-se</h2>
-             <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 25px; margin-top: 5px;">Histórico de Uso</p>
-             <input type="text" id="userInput" class="input-box" placeholder="Seu Nome" style="text-align: center; font-weight: bold; margin-bottom: 25px; font-size: 1.1rem;">
+             <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 20px;">Para salvar seu histórico</p>
+             <input type="text" id="userInput" class="input-box" placeholder="Seu Nome" style="text-align: center; font-weight: bold; margin-bottom: 20px; font-size: 1.1rem;">
              <button onclick="login()" class="btn btn-primary" style="width: 100%;">Entrar</button>
         </div>
     </div>
-
+    
     <div id="historyModal" class="modal-overlay">
-        <div class="modal-box" style="max-width: 900px; width: 95%;">
-             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #f1f5f9;">
-                <h2 style="margin: 0; color: #1e293b; font-size: 1.4rem; font-weight: 800;">Histórico</h2>
-                <i class="fa-solid fa-xmark" style="cursor: pointer; font-size: 1.2rem; color: #94a3b8;" onclick="toggleModal('historyModal', false)"></i>
+        <div class="modal-box" style="max-width: 800px; width: 95%;">
+             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #f1f5f9;">
+                <h2 style="margin: 0; color: #1e293b; font-size: 1.25rem;">Histórico</h2>
+                <i class="fa-solid fa-xmark" style="cursor: pointer; font-size: 1.2rem;" onclick="toggleModal('historyModal', false)"></i>
              </div>
              <div style="max-height: 60vh; overflow-y: auto;">
                  <table>
@@ -159,123 +271,64 @@
                      <tbody id="historyBody"></tbody>
                  </table>
              </div>
-             <button onclick="clearHistory()" style="margin-top: 20px; color: #ef4444; background: none; border: none; cursor: pointer; text-decoration: underline;">Limpar</button>
+             <button onclick="clearHistory()" style="margin-top: 15px; color: #ef4444; background: none; border: none; cursor: pointer; text-decoration: underline; font-size: 0.8rem;">Limpar Histórico</button>
         </div>
     </div>
 
     <div id="toast-container"></div>
 
     <script>
-        // CONFIG
+        // --- LOGIC ---
+        
+        // Dados e Configs
         const CITIES_SAVEGNAGO = ["Americana", "Araraquara", "Araras", "Barretos", "Bebedouro", "Campinas", "Franca", "Hortolândia", "Indaiatuba", "Jaboticabal", "Jardinópolis", "Leme", "Limeira", "Matão", "Monte Alto", "Piracicaba", "Ribeirão Preto", "Rio Claro", "São Carlos", "Sertãozinho", "Sumaré"];
-        const CITIES_PAULISTAO = ["Araraquara", "Barretos", "Campinas", "Franca", "Ribeirão Preto", "Santa Bárbara", "Rio Claro", "Sertãozinho", "Mogi"];
+        const CITIES_PAULISTAO = ["Araraquara", "Barretos", "Campinas", "Franca", "Ribeirão Preto", "Santa Bárbara", "Rio Claro", "Sertãozinho"];
         const LOGO_SAVEGNAGO = "https://savegnagoio.vtexassets.com/assets/vtex/assets-builder/savegnagoio.store-theme/14.0.36/home/logo-save___ee8753fa9fd1e21018b817a0d020549f.png";
         const LOGO_PAULISTAO = "https://paulistaoatacadista.vtexassets.com/assets/vtex.file-manager-graphql/images/91d1697e-7efa-471e-b763-68b8b71430b2___db630f93263bf9ecc924c4493e2279f9.png";
         
-        const CORRECTIONS = { "muçarela": "Mussarela", "mussarela": "Mussarela", "pateko": "Patéko", "páteko": "Patéko", "contra filé": "Contrafilé", "contra-filé": "Contrafilé", "pêra": "Pera", "1l": "1L", "2l": "2L", "3l": "3L", "5l": "5L", "10l": "10L", "1,3l": "1,3L", "1,5l": "1,5L", "1.5l": "1,5L", "1,5": "1,5", "tub": "Tubo", "tubo": "Tubo", "mms": "M&Ms", "m&m": "M&Ms", "kilo": "kg", "sbp": "SBP", "off": "OFF", "on": "ON", "uni": "un", "unid": "un" };
-        
-        // --- AUTO-RESET MODELO ANTIGO ---
-        let storedModel = localStorage.getItem('cohere_model');
-        if (!storedModel || storedModel.indexOf('2024') === -1) {
-            localStorage.setItem('cohere_model', 'command-r-08-2024');
-        }
-
         window.systemLogs = []; window.lastRawResponse = ""; window.lastParsedData = null;
         function logSystem(m, t='INFO') { window.systemLogs.push(`[${new Date().toLocaleTimeString()}] [${t}] ${m}`); if(t==='ERROR') console.error(m); else console.log(m); }
         
         let API_KEY = localStorage.getItem('cohere_api_key');
-        let SELECTED_MODEL = localStorage.getItem('cohere_model');
+        let SELECTED_MODEL = localStorage.getItem('cohere_model') || 'command';
         let CURRENT_COMPANY = localStorage.getItem('company') || 'SAVEGNAGO';
         let MASTER_CITIES = (CURRENT_COMPANY === 'SAVEGNAGO') ? CITIES_SAVEGNAGO : CITIES_PAULISTAO;
         let CURRENT_USER = localStorage.getItem('user');
         window.parsedData = [];
 
+        // INIT
         applyTheme(); updateUserUI();
         if (!API_KEY) setTimeout(openConfigModal, 500);
         document.getElementById('modelSelect').value = SELECTED_MODEL;
 
-        let tInt, tStart;
-        document.getElementById('timerButton').addEventListener('click', function () {
-            const btn = this; const display = document.getElementById('liveTimer'); const txt = document.getElementById('timerButtonText');
-            if (btn.classList.contains('btn-timer-active')) {
-                clearInterval(tInt); btn.classList.remove('btn-timer-active'); btn.classList.add('btn-warning'); txt.textContent = "Iniciar Timer"; 
-                const end = new Date(); const dur = new Date(end - tStart).toISOString().substr(11, 8);
-                const hist = JSON.parse(localStorage.getItem('appHistory') || '[]');
-                hist.unshift({ date: new Date().toLocaleDateString(), company: CURRENT_COMPANY, demand: document.getElementById('demandInput').value || "Sem Título", user: CURRENT_USER || 'Visitante', dur });
-                localStorage.setItem('appHistory', JSON.stringify(hist)); showToast("Tempo Salvo!");
-            } else {
-                tStart = new Date(); btn.classList.add('btn-timer-active'); btn.classList.remove('btn-warning'); txt.textContent = "Parar"; display.classList.remove('hidden'); display.textContent = "00:00:00"; 
-                tInt = setInterval(() => { display.textContent = new Date(new Date() - tStart).toISOString().substr(11, 8); }, 1000);
-            }
-        });
-
-        // --- JSON SANITIZER ---
+        // --- FILTRO DE JSON BLINDADO (CORREÇÃO DOS ERROS) ---
         function extractJSON(str) {
-            let clean = str.replace(/```json/g, '').replace(/```/g, '').replace(/^json/i, '');
-            const firstOpen = clean.indexOf('['); const lastClose = clean.lastIndexOf(']');
-            if (firstOpen !== -1 && lastClose !== -1) return clean.substring(firstOpen, lastClose + 1);
+            // Tenta encontrar o array principal [...]
+            const firstOpen = str.indexOf('[');
+            const lastClose = str.lastIndexOf(']');
             
-            // Auto-Repair Tentative
-            if (firstOpen !== -1) {
-                let partial = clean.substring(firstOpen);
-                if (!partial.endsWith('}]')) {
-                    if (partial.endsWith('}')) return partial + ']';
-                    else return partial + '}]';
-                }
-                return partial;
+            if (firstOpen !== -1 && lastClose !== -1) {
+                return str.substring(firstOpen, lastClose + 1);
             }
             
-            const firstObj = clean.indexOf('{'); const lastObj = clean.lastIndexOf('}');
-            if (firstObj !== -1 && lastObj !== -1) return "[" + clean.substring(firstObj, lastObj + 1) + "]";
-            throw new Error("Não foi possível ler os dados (JSON inválido).");
-        }
-
-        function cleanAtacadoField(text) {
-            if (!text) return "";
-            let cleaned = text;
-            const forbidden = ["save ganhe", "nosso cartão", "cliente campeão", "save ganhe:", "nosso cartão:", "cliente campeão:"];
-            forbidden.forEach(term => { cleaned = cleaned.replace(new RegExp(`${term}.*?(\\d+,\\d{2})?`, "gi"), "").trim(); });
-            cleaned = cleaned.replace(/red\.?\s*[\d\/]+/gi, "").replace(/\(red\.?\s*[\d\/]+\)/gi, "").replace(/^\s*[\d\/]+\s*$/, ""); 
-            cleaned = cleaned.replace(/\(\s*\d+\s*\)/g, ""); 
-            cleaned = cleaned.replace(/^[\s,]+|[\s,]+$/g, "");
-            return cleaned;
-        }
-
-        function smartCorrectItem(item) {
-            item.desc = formatText(item.desc);
-            if (item.atacado) {
-                const lowerAtacado = item.atacado.toLowerCase();
-                const priceMatch = item.atacado.match(/R\$\s*(\d+,\d{2})/);
-                if (lowerAtacado.includes("save ganhe") || lowerAtacado.includes("nosso cartão") || lowerAtacado.includes("cliente campeão")) {
-                    if (priceMatch && (!item.clube || item.clube === "0,00" || item.clube === "null")) {
-                        item.clube = priceMatch[1];
-                        if (lowerAtacado.includes("nosso cartão")) item.nome_clube = "Nosso Cartão";
-                        else if (lowerAtacado.includes("cliente campeão")) item.nome_clube = "Cliente Campeão";
-                        else item.nome_clube = "Save Ganhe";
-                    }
-                }
-                item.atacado = cleanAtacadoField(item.atacado);
+            // Se não achar array, tenta achar objeto {...}
+            const firstObj = str.indexOf('{');
+            const lastObj = str.lastIndexOf('}');
+            if (firstObj !== -1 && lastObj !== -1) {
+                return "[" + str.substring(firstObj, lastObj + 1) + "]"; // Força array
             }
-            if (!item.preco || item.preco === "null") item.preco = "0,00";
-            return item;
+
+            throw new Error("A IA não retornou dados válidos (JSON não encontrado). Tente novamente.");
         }
 
-        function formatText(str) {
+        // --- TEXTO ---
+        function toTitleCase(str) {
             if(!str) return "";
-            let corrected = str;
-            const keys = Object.keys(CORRECTIONS).sort((a,b) => b.length - a.length);
-            keys.forEach(key => {
-                const regex = new RegExp(`\\b${key.replace('.','\\.')}\\b`, 'gi'); 
-                if (key.match(/\d/)) corrected = corrected.replace(new RegExp(key, 'gi'), CORRECTIONS[key]);
-                else corrected = corrected.replace(regex, CORRECTIONS[key]);
-            });
-            corrected = corrected.replace(/\s+kilo\s+/gi, " kg ");
             const smallWords = /^(de|da|do|das|dos|e|em|na|no|nas|nos|com|por|para|o|a|os|as|um|uma|que|como|pelo|pela|ao|aos|ou)$/i;
-            return corrected.split(' ').map((word, index) => {
-                if (Object.values(CORRECTIONS).includes(word)) return word;
+            return str.toLowerCase().split(' ').map((word, index) => {
                 const cleanWord = word.replace(/[^\w\u00C0-\u00FF]/g, '');
-                if (index > 0 && smallWords.test(cleanWord)) return word.toLowerCase();
-                return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+                if (index > 0 && smallWords.test(cleanWord)) return word;
+                return word.charAt(0).toUpperCase() + word.slice(1);
             }).join(' ');
         }
         
@@ -285,6 +338,7 @@
             const copy = [...cities]; const last = copy.pop(); return copy.join(', ') + ' e ' + last; 
         }
 
+        // --- SISTEMA ---
         function toggleCompany() {
             CURRENT_COMPANY = (CURRENT_COMPANY === 'SAVEGNAGO') ? 'PAULISTAO' : 'SAVEGNAGO';
             localStorage.setItem('company', CURRENT_COMPANY);
@@ -297,72 +351,74 @@
             const body = document.body;
             const logo = document.getElementById('switcherLogo');
             const label = document.getElementById('companyLabel');
-            if (CURRENT_COMPANY === 'SAVEGNAGO') { body.className = 'theme-savegnago'; label.textContent = "SAVEGNAGO"; logo.src = LOGO_SAVEGNAGO; } 
-            else { body.className = 'theme-paulistao'; label.textContent = "PAULISTÃO"; logo.src = LOGO_PAULISTAO; }
+            if (CURRENT_COMPANY === 'SAVEGNAGO') {
+                body.className = 'theme-savegnago';
+                label.textContent = "SAVEGNAGO";
+                logo.src = LOGO_SAVEGNAGO;
+            } else {
+                body.className = 'theme-paulistao';
+                label.textContent = "PAULISTÃO";
+                logo.src = LOGO_PAULISTAO;
+            }
         }
 
         async function analyzeWithCohere() {
             const text = document.getElementById('inputText').value;
             if (!API_KEY) { openConfigModal(); return; }
             if (!text.trim()) { showToast("Cole o texto!", "error"); return; }
+            const btn = document.getElementById('analyzeBtn'); const spinner = document.getElementById('loadingSpinner'); const btnText = document.getElementById('btnText');
+            btn.disabled = true; btnText.textContent = "Processando..."; spinner.classList.remove('hidden');
+            document.getElementById('resultsArea').innerHTML = ''; document.getElementById('summaryPanel').classList.add('hidden');
             
-            const btn = document.getElementById('analyzeBtn'); 
-            const spinner = document.getElementById('loadingSpinner'); 
-            const btnText = document.getElementById('btnText');
+            const prompt = `Você é um especialista em extração de dados JSON. Analise o texto e extraia as ofertas. 
             
-            btn.disabled = true; btnText.textContent = "Processando... (Pode demorar)"; spinner.classList.remove('hidden');
-            document.getElementById('resultsArea').innerHTML = ''; 
-            document.getElementById('summaryPanel').classList.add('hidden');
+            REGRAS OBRIGATÓRIAS:
+            1. Retorne APENAS o JSON puro. Não escreva "Aqui está" ou "Segue JSON".
+            2. O formato DEVE ser um Array: [{"header": "...", "itens": [...]}]
+            3. MULTI-SKU: Se houver vários códigos (ex: red.123/456), capture TODOS separados por barra no campo "cod".
+            4. Se houver "desconto" na descrição, extraia e remova da descrição.
+            5. Se não houver preço, retorne null.
             
-            // PROMPT FULL SWEEP (COMPLETO)
-            const prompt = `Você é um especialista em extração de dados JSON.
+            JSON ESTRUTURA:
+            [{"header": "Nome da Lista", "itens": [{"desc": "Nome", "preco": "X,XX", "cod": "123/456", "clube": "X,XX", "nome_clube": "Save/Cartão", "atacado": "Regras", "desconto": "20%"}]}]
             
-            MISSÃO: Extrair CADA UM dos produtos da lista. NÃO PULE NADA.
-            Se a lista tiver 50 produtos, retorne 50 objetos. Leia linha por linha.
-            
-            REGRAS:
-            1. SEPARAÇÃO CLUBE: 'Save Ganhe', 'Cliente Campeão', 'Nosso Cartão' -> campo 'clube'. JAMAIS 'atacado'.
-            2. ATACADO: Apenas regras 'Leve 3', 'A partir de...', parenteses descritivos. SEM códigos.
-            3. MULTI-SKU: Capture códigos 123/456.
-            4. PREÇO: Se vazio, "0,00".
-            
-            SAÍDA JSON PURA: 
-            [{"header": "Nome", "itens": [{"desc": "Nome", "preco": "X,XX", "cod": "123", "clube": "X,XX", "nome_clube": "Save", "atacado": "Regras", "desconto": "20%"}]}]
-            
-            TEXTO: ${text}`;
+            TEXTO PARA ANALISAR: 
+            ${text}`;
             
             try {
                 const response = await fetch("https://api.cohere.ai/v1/chat", {
                     method: "POST",
                     headers: { "Authorization": `Bearer ${API_KEY}`, "Content-Type": "application/json" },
-                    body: JSON.stringify({ 
-                        model: SELECTED_MODEL, 
-                        message: prompt, 
-                        temperature: 0.0, // Robótico para não inventar/pular
-                        max_tokens: 4000 
-                    })
+                    body: JSON.stringify({ model: SELECTED_MODEL, message: prompt, temperature: 0.1 })
                 });
-                
                 const data = await response.json();
-                
-                if (data.message && data.message.includes("removed")) throw new Error("Modelo descontinuado. Vá na engrenagem.");
                 if (data.message) throw new Error(data.message);
                 
                 window.lastRawResponse = data.text;
-                const jsonStr = extractJSON(data.text);
-                let rawData = JSON.parse(jsonStr);
-                if (!Array.isArray(rawData)) rawData = [rawData];
+                logSystem("Resposta recebida. Parseando...");
+                
+                // --- SANITIZER BLINDADO ---
+                const cleanJsonStr = extractJSON(data.text); 
+                let rawData = JSON.parse(cleanJsonStr);
+                
+                if (!Array.isArray(rawData)) rawData = [rawData]; // Garante Array
+                // --------------------------
 
-                rawData.forEach(lista => { lista.itens.forEach(item => smartCorrectItem(item)); });
+                rawData.forEach(lista => {
+                    lista.itens.forEach(item => {
+                        item.desc = toTitleCase(item.desc);
+                        if (item.atacado) item.atacado = toTitleCase(item.atacado);
+                        if (!item.preco || item.preco === "null") item.preco = "0,00";
+                    });
+                });
                 processCitiesLogic(rawData);
                 window.parsedData = rawData;
                 renderSummary(); renderAllTables(); showToast("Sucesso!");
             } catch (e) { 
-                alert("Erro: " + e.message); 
+                alert("Erro na Leitura: " + e.message + "\n\nVerifique se a lista está completa."); 
+                logSystem(e.message, 'ERROR'); 
             }
-            finally { 
-                btn.disabled = false; btnText.textContent = "Analisar Ofertas"; spinner.classList.add('hidden'); 
-            }
+            finally { btn.disabled = false; btnText.textContent = "Analisar Ofertas"; spinner.classList.add('hidden'); }
         }
 
         function processCitiesLogic(data) {
@@ -374,17 +430,11 @@
                     const normHeader = header.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                     const normCity = city.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
                     if (normHeader.includes(normCity)) {
-                        let final = city;
-                        if (city === "Santa Bárbara") final = "Santa Bárbara d'Oeste";
-                        if (city === "Mogi") final = "Mogi Guaçu";
-                        if (!data[i].cityList.includes(final)) { data[i].cityList.push(final); specificCities.push(city); }
+                        let final = city === "Santa Bárbara" ? "Santa Bárbara d'Oeste" : city;
+                        data[i].cityList.push(final);
+                        specificCities.push(city);
                     }
                 });
-                const hasCampinas = data[i].cityList.some(c => c.includes("Campinas"));
-                const hasSantaBarbara = data[i].cityList.some(c => c.includes("Santa Bárbara"));
-                if ((hasCampinas || hasSantaBarbara) && !data[i].cityList.includes("Mogi Guaçu")) {
-                    data[i].cityList.push("Mogi Guaçu");
-                }
             }
             if (data.length > 0) {
                 data[0].cityList = MASTER_CITIES.filter(c => !specificCities.includes(c));
@@ -396,7 +446,7 @@
             const tbody = document.getElementById('summaryBody'); tbody.innerHTML = ''; let total = 0;
             window.parsedData.forEach(l => {
                 total += l.itens.length;
-                tbody.innerHTML += `<tr><td style="font-weight: 600;">${l.header} <span style="font-size: 0.7rem; background: #e2e8f0; padding: 2px 6px; border-radius: 4px; color: #64748b; margin-left: 5px;">${l.cityList ? l.cityList.length : 0} CIDADES</span></td><td style="text-align: center; font-weight: 800; color: var(--active-brand);">${l.itens.length}</td></tr>`;
+                tbody.innerHTML += `<tr><td style="font-weight: 600;">${l.header} <span style="font-size: 0.7rem; background: #e2e8f0; padding: 2px 6px; border-radius: 4px; color: #64748b;">${l.cityList ? l.cityList.length : 0} CIDADES</span></td><td style="text-align: center; font-weight: 800; color: var(--active-brand);">${l.itens.length}</td></tr>`;
             });
             document.getElementById('totalCount').textContent = total;
             document.getElementById('summaryPanel').classList.remove('hidden');
@@ -406,28 +456,29 @@
             const container = document.getElementById('resultsArea'); container.innerHTML = '';
             const listaGeral = window.parsedData[0];
             window.parsedData.forEach((lista, idx) => {
-                const wrapper = document.createElement('div'); wrapper.className = "glass-card";
+                const wrapper = document.createElement('div'); wrapper.className = "main-card";
                 const citiesText = formatCityList(lista.cityList);
-                const isAuto = idx === 0 ? '<span style="font-size: 0.65rem; background: #e0e7ff; color: #4338ca; padding: 3px 8px; border-radius: 6px; border: 1px solid #c7d2fe; margin-right: 8px; font-weight: 700;">AUTOMÁTICO</span>' : '';
+                const isAuto = idx === 0 ? '<span style="font-size: 0.6rem; background: #e0e7ff; color: #4338ca; padding: 2px 6px; border-radius: 4px; border: 1px solid #c7d2fe; margin-right: 5px; font-weight: 700;">AUTOMÁTICO</span>' : '';
                 
                 const header = `
-                    <div style="padding: 20px 30px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                    <div style="padding-bottom: 15px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
                         <div>
-                            <h3 style="margin: 0; font-size: 1.2rem; color: #1e293b; display: flex; align-items: center; font-weight: 800;">${isAuto} ${lista.header}</h3>
-                            <div style="display: flex; align-items: center; gap: 6px; margin-top: 6px;">
-                                <i class="fa-solid fa-map-pin" style="color: #ef4444; font-size: 0.9rem;"></i>
-                                <span style="font-size: 0.85rem; color: #64748b; font-weight: 500;">${citiesText}</span>
-                                <button onclick="copyToClip('${citiesText.replace(/'/g, "\\'")}')" style="background: none; border: none; cursor: pointer; color: #94a3b8; padding: 2px;"><i class="fa-regular fa-copy"></i></button>
+                            <h3 style="margin: 0; font-size: 1.1rem; color: #1e293b; display: flex; align-items: center; font-weight: 800;">${isAuto} ${lista.header}</h3>
+                            <div style="display: flex; align-items: center; gap: 5px; margin-top: 5px;">
+                                <i class="fa-solid fa-map-pin" style="color: #ef4444; font-size: 0.8rem;"></i>
+                                <span style="font-size: 0.8rem; color: #64748b; font-weight: 500;">${citiesText}</span>
+                                <button onclick="copyToClip('${citiesText.replace(/'/g, "\\'")}')" style="background: none; border: none; cursor: pointer; color: #94a3b8;"><i class="fa-regular fa-copy"></i></button>
                             </div>
                         </div>
-                        <div style="display: flex; gap: 10px;">
-                            ${idx === 0 ? `<button onclick="reorder(${idx})" class="btn btn-warning" style="font-size: 0.8rem; padding: 8px 16px;"><i class="fa-solid fa-arrow-down-short-wide"></i> Reordenar</button>` : ''}
-                            <button onclick="copyList(${idx}, this)" class="btn btn-success" style="font-size: 0.8rem; padding: 8px 16px;"><i class="fa-regular fa-copy"></i> Copiar</button>
-                            <button onclick="exportXLS(${idx})" class="btn btn-primary" style="font-size: 0.8rem; padding: 8px 16px;"><i class="fa-solid fa-file-excel"></i> Excel</button>
+                        <div style="display: flex; gap: 8px;">
+                            ${idx === 0 ? `<button onclick="reorder(${idx})" class="btn btn-warning" style="font-size: 0.75rem; padding: 8px 12px;"><i class="fa-solid fa-arrow-down-short-wide"></i> Reordenar</button>` : ''}
+                            <button onclick="copyList(${idx}, this)" class="btn btn-success" style="font-size: 0.75rem; padding: 8px 12px;"><i class="fa-regular fa-copy"></i> Copiar</button>
+                            <button onclick="exportXLS(${idx})" class="btn btn-primary" style="font-size: 0.75rem; padding: 8px 12px;"><i class="fa-solid fa-file-excel"></i> Excel</button>
                         </div>
                     </div>`;
 
                 let rows = ''; 
+                const hasDiscount = lista.itens.some(i => i.desconto) || (listaGeral && listaGeral.itens.some(i => i.desconto));
                 const labelClubText = CURRENT_COMPANY === 'SAVEGNAGO' ? 'SAVE GANHE' : 'CLIENTE CAMPEÃO';
 
                 lista.itens.forEach((item, i) => {
@@ -436,7 +487,7 @@
                     let priceDisplay = `R$ ${item.preco}`;
                     let cardDisplay = (item.nome_clube && item.nome_clube.toLowerCase().includes('cartão')) ? `<span class="price-label text-blue">NOSSO CARTÃO</span>R$ ${item.clube}` : '-';
                     let clubDisplay = (item.nome_clube && !item.nome_clube.toLowerCase().includes('cartão') && item.clube) ? `<span class="price-label text-pink">${labelClubText}</span>R$ ${item.clube}` : '-';
-                    let atacadoDisplay = item.atacado ? `<span class="price-label text-purple">ATACADO / REGRAS</span>${item.atacado}` : '-';
+                    let atacadoDisplay = item.atacado ? `<span class="price-label text-purple">ATACADO</span>${item.atacado}` : '-';
                     let discountDisplay = item.desconto || '-';
                     let rowStyle = "";
 
@@ -454,41 +505,52 @@
                         }
 
                         if(refItem) {
+                            const refCard = (refItem.nome_clube && refItem.nome_clube.toLowerCase().includes('cartão')) ? refItem.clube : '-';
+                            const refClub = (refItem.nome_clube && !refItem.nome_clube.toLowerCase().includes('cartão')) ? refItem.clube : '-';
+                            const currCard = (item.nome_clube && item.nome_clube.toLowerCase().includes('cartão')) ? item.clube : '-';
+                            const currClub = (item.nome_clube && !item.nome_clube.toLowerCase().includes('cartão') && item.clube) ? item.clube : '-';
+                            
                             const isSame = (item.preco.trim() === refItem.preco.trim()) &&
                                            (item.desc.trim() === refItem.desc.trim()) &&
-                                           ((item.atacado||'').trim() === (refItem.atacado||'').trim());
+                                           (currCard.trim() === refCard.trim()) &&
+                                           (currClub.trim() === refClub.trim()) &&
+                                           ((item.atacado||'-').trim() === (refItem.atacado||'-').trim()) &&
+                                           ((item.desconto||'-').trim() === (refItem.desconto||'-').trim());
 
                             if(isSame) showRow = false;
                             else {
                                 rowStyle = "background-color: #fefce8;"; // Yellow
                                 if(item.desc.trim() !== refItem.desc.trim()) {
-                                    descDisplay += ` <span style="font-size: 0.6rem; background: #ffedd5; color: #c2410c; padding: 2px 5px; border-radius: 4px; font-weight: 700;">ALTERADO</span>`;
+                                    descDisplay += ` <span style="font-size: 0.6rem; background: #ffedd5; color: #c2410c; padding: 1px 4px; border-radius: 4px; font-weight: 700;">ALTERADO</span>`;
                                     descDisplay += `<span class="diff-old">Era: ${refItem.desc}</span>`;
                                 }
                                 if(item.preco !== refItem.preco) priceDisplay += `<span class="diff-old">Era: ${refItem.preco}</span>`;
                             }
                         } else {
-                            descDisplay = `<span class="diff-new" style="color: #15803d; font-weight: 700;">${item.desc}</span> <span style="font-size: 0.6rem; background: #dcfce7; color: #15803d; padding: 2px 5px; border-radius: 4px; font-weight: 700;">NOVO</span>`;
+                            descDisplay = `<span class="diff-new" style="color: #15803d; font-weight: 700;">${item.desc}</span> <span style="font-size: 0.6rem; background: #dcfce7; color: #15803d; padding: 1px 4px; border-radius: 4px; font-weight: 700;">NOVO</span>`;
                             rowStyle = "background-color: #f0fdf4;"; // Green
                         }
                     }
 
                     if(showRow) {
-                        const orderCell = idx === 0 ? `<input type="number" class="order-input" style="padding: 5px; text-align: center; width: 50px;" value="${i + 1}">` : `<span style="color: #94a3b8; font-weight: 700; font-size: 0.75rem;">${i + 1}</span>`;
+                        const orderCell = idx === 0 ? `<input type="number" class="input-box" style="padding: 5px; text-align: center; width: 50px;" value="${i + 1}">` : `<span style="color: #94a3b8; font-weight: 700; font-size: 0.75rem;">${i + 1}</span>`;
+                        const baseUrl = CURRENT_COMPANY === 'SAVEGNAGO' ? 'https://www.savegnago.com.br/' : 'https://www.paulistaoatacadista.com.br/';
+                        
                         let linkHtml = '<span style="color: #cbd5e1;">-</span>';
                         if(item.cod) {
                             const codes = item.cod.toString().replace(/red\./gi, '').split(/[\/,\s]+/);
                             linkHtml = '<div style="display: flex; flex-direction: column; gap: 4px; align-items: center;">';
                             codes.forEach(c => {
                                 let clean = c.replace(/[^0-9]/g, '');
-                                if(clean) linkHtml += `<div style="background: #f8fafc; padding: 2px 6px; border-radius: 4px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 4px;"><span style="font-size: 0.7rem; color: #334155; font-weight: 700;">${clean}</span></div>`;
+                                if(clean) linkHtml += `<div style="background: #f8fafc; padding: 2px 6px; border-radius: 4px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 4px;"><a href="${baseUrl}${clean}" target="_blank" class="sku-link" style="background: none; padding: 0; font-size: 0.7rem; text-decoration: none; color: var(--active-brand); font-weight: 700;">${clean} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 8px; opacity: 0.5;"></i></a><i class="fa-regular fa-copy" style="cursor: pointer; font-size: 0.7rem; color: #94a3b8;" onclick="animateCopyBtn(this, '${clean}')"></i></div>`;
                             });
                             linkHtml += '</div>';
                         }
                         
                         const nameBtn = `<i class="fa-regular fa-copy" style="cursor: pointer; color: #94a3b8; margin-left: 8px;" onclick="copyAndStrike(this, '${item.desc.replace(/'/g, "\\'")}')"></i>`;
+                        const discountCell = hasDiscount ? `<td style="text-align: center; color: #dc2626; font-size: 0.75rem; font-weight: 700;">${discountDisplay}</td>` : '';
 
-                        rows += `<tr style="${rowStyle}" id="table-${idx}-row-${i}">
+                        rows += `<tr style="${rowStyle}">
                             <td style="text-align: center;"><input type="checkbox" onchange="this.closest('tr').style.backgroundColor = this.checked ? '#f0fdf4' : ''"></td>
                             <td style="text-align: center;">${orderCell}</td>
                             <td style="text-align: center;">${linkHtml}</td>
@@ -496,14 +558,15 @@
                             <td style="text-align: center; font-weight: 800; color: #1e293b;">${priceDisplay}</td>
                             <td style="text-align: center; font-size: 0.8rem;">${cardDisplay}</td>
                             <td style="text-align: center; font-size: 0.8rem;">${clubDisplay}</td>
-                            <td style="text-align: center; font-size: 0.75rem; color: #6d28d9; max-width: 250px; line-height: 1.3;">${atacadoDisplay}</td>
+                            <td style="text-align: center; font-size: 0.75rem; color: #6d28d9;">${atacadoDisplay}</td>
+                            ${discountCell}
                         </tr>`;
                     }
                 });
                 
-                if(rows === '') rows = `<tr><td colspan="8" style="padding: 30px; text-align: center; color: #94a3b8; font-style: italic;">Nenhuma alteração encontrada.</td></tr>`;
+                if(rows === '') rows = `<tr><td colspan="${hasDiscount ? 9 : 8}" style="padding: 30px; text-align: center; color: #94a3b8; font-style: italic;">Nenhuma alteração encontrada.</td></tr>`;
 
-                wrapper.innerHTML = `${header}<div class="table-wrapper"><table id="table-${idx}"><thead><tr>
+                wrapper.innerHTML = `${header}<div class="table-container"><table><thead><tr>
                     <th style="width: 40px; text-align: center;"><i class="fa-solid fa-check"></i></th>
                     <th style="width: 50px; text-align: center;">#</th>
                     <th style="text-align: center;">Cód</th>
@@ -511,7 +574,8 @@
                     <th style="text-align: center;">Normal</th>
                     <th style="text-align: center;">Cartão</th>
                     <th style="text-align: center;">${labelClubText}</th>
-                    <th style="text-align: center; min-width: 150px;">Atacado / Regras</th>
+                    <th style="text-align: center;">Atacado</th>
+                    ${hasDiscount ? '<th style="text-align: center;">Desc.</th>' : ''}
                 </tr></thead><tbody>${rows}</tbody></table></div>`;
                 container.appendChild(wrapper);
             });
@@ -521,8 +585,8 @@
         function animateCopyBtn(el, text) { navigator.clipboard.writeText(text); const o=el.className; el.className="fa-solid fa-check"; el.style.color="#16a34a"; setTimeout(()=>{el.className="fa-regular fa-copy"; el.style.color="#94a3b8";},1500); showToast("Copiado!"); }
         function copyAndStrike(el, text) { navigator.clipboard.writeText(text); const span = el.previousElementSibling; if(span) span.style.textDecoration = "line-through"; span.style.opacity = "0.5"; animateCopyBtn(el, text); }
         function copyToClip(text) { navigator.clipboard.writeText(text); showToast("Copiado!"); }
-        function showToast(m,t="success"){ const d=document.createElement("div"); d.className=`toast ${t}`; d.innerHTML=`<i class="fa-solid fa-check-circle"></i> ${m}`; document.getElementById("toast-container").appendChild(d); setTimeout(()=>d.remove(),3000); }
-        function copyList(idx, btn) { const list=window.parsedData[idx]; let text=""; list.itens.forEach((item,i)=>{ text+=`${i+1} - ${item.desc} – R$ ${item.preco}\n`; }); navigator.clipboard.writeText(text).then(()=>showToast("Lista Copiada!")); }
+        function showToast(m,t="success"){ const d=document.createElement("div"); d.className=`toast ${t}`; d.textContent=m; document.getElementById("toast-container").appendChild(d); setTimeout(()=>d.remove(),3000); }
+        function copyList(idx, btn) { /* Lógica Mantida */ const list=window.parsedData[idx]; let text=""; list.itens.forEach((item,i)=>{ text+=`${i+1} - ${item.desc} – R$ ${item.preco}\n`; }); navigator.clipboard.writeText(text).then(()=>showToast("Lista Copiada!")); }
         function reorder(idx) { renderAllTables(); showToast("Reordenado!"); }
         function exportXLS(idx) { const list=window.parsedData[idx]; const ws=XLSX.utils.json_to_sheet(list.itens); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Ofertas"); XLSX.writeFile(wb, `Lista_${idx}.xlsx`); }
         function clearAll() { document.getElementById("inputText").value=""; document.getElementById("resultsArea").innerHTML=""; document.getElementById("summaryPanel").classList.add("hidden"); window.parsedData=[]; }
@@ -531,29 +595,22 @@
             try {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
-                const pageHeight = doc.internal.pageSize.height;
-                const margin = 10;
-                let y = 10; 
-                doc.setFontSize(16); doc.setTextColor(220, 38, 38); doc.text("Relatório de Debug", margin, y); y += 10;
-                doc.setFontSize(10); doc.setTextColor(0); doc.text(`Data: ${new Date().toLocaleString()}`, margin, y); y += 10;
-                doc.setFontSize(9); doc.setFont("courier", "normal"); 
-                const rawText = window.lastRawResponse || "Nenhuma resposta capturada.";
-                const lines = doc.splitTextToSize(rawText, 190);
-                lines.forEach(line => {
-                    if (y > pageHeight - margin) { doc.addPage(); y = margin; }
-                    doc.text(line, margin, y); y += 4; 
-                });
-                doc.save(`BugReport_${Date.now()}.pdf`);
-            } catch(e) { alert("Erro ao gerar PDF: " + e.message); }
+                doc.text("Relatório de Erro", 10, 10);
+                doc.text(`Data: ${new Date().toLocaleString()}`, 10, 20);
+                doc.text("Resposta Bruta:", 10, 30);
+                const splitText = doc.splitTextToSize(window.lastRawResponse || "Vazio", 180);
+                doc.text(splitText, 10, 40);
+                doc.save("BugReport.pdf");
+            } catch(e) { alert("Erro ao gerar PDF"); }
         }
-
-        // Modais
         function openConfigModal() { document.getElementById("configModal").style.display = "flex"; }
         function closeConfigModal() { document.getElementById("configModal").style.display = "none"; }
         function saveApiKey() { localStorage.setItem("cohere_api_key", document.getElementById("apiKeyInput").value); API_KEY = document.getElementById("apiKeyInput").value; closeConfigModal(); }
+        
         function toggleAuth() { if(CURRENT_USER) { if(confirm("Sair?")) { localStorage.removeItem("user"); CURRENT_USER=null; updateUserUI(); } } else { document.getElementById("loginModal").style.display="flex"; } }
         function login() { const n = document.getElementById("userInput").value; if(n) { CURRENT_USER=n; localStorage.setItem("user", n); updateUserUI(); document.getElementById("loginModal").style.display="none"; } }
         function updateUserUI() { const b=document.getElementById("authBtn"); const u=document.getElementById("userInfo"); if(CURRENT_USER) { b.textContent="Sair"; u.classList.remove("hidden"); document.getElementById("userNameDisplay").textContent=CURRENT_USER; } else { b.textContent="Entrar"; u.classList.add("hidden"); } }
+        
         function openHistory() { document.getElementById("historyModal").style.display = "flex"; }
         function toggleModal(id, show) { document.getElementById(id).style.display = show ? "flex" : "none"; }
         function clearHistory() { if(confirm("Apagar?")) { localStorage.removeItem('appHistory'); openHistory(); } }
